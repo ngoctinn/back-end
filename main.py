@@ -3,7 +3,6 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 from typing import List
 
-
 books = [
     {
         "id": 1,
@@ -60,6 +59,7 @@ books = [
         "language": "English",
     },
 ]
+
 
 app = FastAPI()
 
