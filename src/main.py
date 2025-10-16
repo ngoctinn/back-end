@@ -1,6 +1,34 @@
-"""Entry point placeholder - KHÔNG CHỨA LOGIC NGHIỆP VỤ.
+"""Điểm khởi tạo ứng dụng FastAPI.
 
-File này để làm chỗ đặt app khi bắt đầu triển khai FastAPI.
+Bao gồm cấu hình CORS cơ bản và gắn router của module auth.
 """
 
-# TODO: sẽ khởi tạo FastAPI app tại đây khi bắt đầu implement
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from src.core.config import settings
+from src.modules.auth.router import router as auth_router
+
+
+app = FastAPI(title="Spa Backend API")
+
+# Cấu hình CORS
+app.add_middleware(
+	CORSMiddleware,
+	allow_origins=settings.BACKEND_CORS_ORIGINS or ["*"],
+	allow_credentials=True,
+	allow_methods=["*"],
+	allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def healthcheck():
+	"""Endpoint kiểm tra tình trạng ứng dụng."""
+
+	return {"status": "ok"}
+
+
+# Include routers
+app.include_router(auth_router)
+

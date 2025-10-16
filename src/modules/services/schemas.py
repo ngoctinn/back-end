@@ -1,1 +1,0 @@
-"""Schemas placeholder cho services."""

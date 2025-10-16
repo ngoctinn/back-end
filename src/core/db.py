@@ -8,10 +8,10 @@ Không chứa logic nghiệp vụ.
 import os
 from sqlmodel import SQLModel, create_engine
 from sqlalchemy.orm import sessionmaker
+from src.core.config import settings
 
 # Đọc DATABASE_URL từ biến môi trường. Nếu không có, dùng SQLite file dev.
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./dev.db")
-
+DATABASE_URL = settings.DATABASE_URL
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 
 # Session factory (sử dụng SQLAlchemy 2-style)

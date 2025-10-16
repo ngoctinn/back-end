@@ -1,19 +1,48 @@
-"""Cấu hình ứng dụng (placeholder).
-
-Đặt các pydantic Settings và đọc từ .env ở đây khi bắt đầu cấu hình.
-"""
-
+# core/config.py
+import os
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
+
 
 class Settings(BaseSettings):
-    app_name: str = "Awesome API"
-    admin_email: str
-    items_per_user: int = 50
+    DATABASE_URL: str
 
-    model_config = SettingsConfigDict(env_file=".env")
+    # JWT settings
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+    # Mail settings
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int
+    MAIL_SERVER: str
+    MAIL_STARTTLS: bool
+    MAIL_SSL_TLS: bool
+
+    # Google OAuth settings
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+
+    # CORS settings
+    BACKEND_CORS_ORIGINS: list[str] = []
+
+    # Supabase Settings
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
+    SUPABASE_BUCKET_NAME: str
+
+    FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
+
+    model_config = SettingsConfigDict(
+        env_file=os.getenv("ENV_FILE", ".env"),
+        extra="ignore",
+    )
+
+
+settings = Settings()
 

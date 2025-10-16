@@ -1,1 +1,0 @@
-"""Module customers - giữ chỗ."""
