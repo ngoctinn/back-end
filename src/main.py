@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.config import settings
 from src.modules.auth.router import router as auth_router
+from src.modules.customers.router import router as customers_router
 
 
 app = FastAPI(title="Spa Backend API")
@@ -31,4 +32,5 @@ def healthcheck():
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(customers_router)
 
