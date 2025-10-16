@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 
 from src.core.config import settings
 from src.core.db import get_session
-from . import schemas, service
+from src.core.dependencies import get_current_user
+from . import schemas
+from . import auth_service, token_service
+from .models import User
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -27,7 +30,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_session
 		MessageResponse với thông tin đăng ký thành công
 	"""
 	try:
-		result = service.register_user(db, payload.email, payload.password)
+		result = auth_service.register_user(db, payload.email, payload.password)
 		return schemas.MessageResponse(
 			message=result["message"],
 			email=result["email"]
@@ -48,7 +51,7 @@ def verify_email(payload: schemas.VerifyEmailRequest, db: Session = Depends(get_
 		MessageResponse thông báo xác minh thành công
 	"""
 	try:
-		result = service.confirm_email(db, payload.token)
+		result = token_service.confirm_email(db, payload.token)
 		return schemas.MessageResponse(
 			message=result["message"],
 			email=result.get("email")
@@ -58,22 +61,31 @@ def verify_email(payload: schemas.VerifyEmailRequest, db: Session = Depends(get_
 
 
 @router.post("/resend-verification-email", response_model=schemas.MessageResponse)
-def resend_verification_email(db: Session = Depends(get_session)):
-	"""Gửi lại email xác minh (dành cho user đã đăng ký nhưng chưa verify).
+def resend_verification_email(
+	db: Session = Depends(get_session),
+	current_user: User = Depends(get_current_user)
+):
+	"""Gửi lại email xác minh cho user hiện tại.
 
-	Endpoint này cần xác thực người dùng trước. Hiện tại là placeholder.
+	Endpoint này yêu cầu xác thực với JWT Bearer token.
 
 	Args:
 		db: Session cơ sở dữ liệu
+		current_user: User hiện tại từ JWT
 
 	Returns:
 		MessageResponse thông báo gửi lại email
 	"""
-	# TODO: Thêm dependency get_current_user để lấy user ID
-	raise HTTPException(
-		status_code=501,
-		detail="Endpoint này sẽ được bật khi xác thực được triển khai"
-	)
+	try:
+		success = token_service.initiate_email_verification(db, current_user.id)
+		if not success:
+			raise HTTPException(status_code=500, detail="Lỗi khi gửi email")
+		return schemas.MessageResponse(
+			message="Email xác minh đã được gửi lại",
+			email=current_user.email
+		)
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=f"Lỗi: {str(e)}")
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
@@ -93,7 +105,7 @@ def login(
 		TokenResponse chứa access token
 	"""
 	try:
-		access_token, refresh_token, user = service.login_user(
+		access_token, refresh_token, user = auth_service.login_user(
 			db, payload.email, payload.password
 		)
 	except ValueError as e:
@@ -133,7 +145,7 @@ def refresh(
 	if not refresh_token:
 		raise HTTPException(status_code=401, detail="Thiếu refresh token")
 
-	new_access = service.refresh_access_token(db, refresh_token)
+	new_access = auth_service.refresh_access_token(db, refresh_token)
 	if not new_access:
 		raise HTTPException(status_code=401, detail="Refresh token không hợp lệ")
 	return schemas.TokenResponse(access_token=new_access)
@@ -156,7 +168,7 @@ def logout(
 		MessageResponse thông báo đăng xuất thành công
 	"""
 	if refresh_token:
-		service.logout_user(db, refresh_token)
+		auth_service.logout_user(db, refresh_token)
 	# Xóa cookie trên trình duyệt
 	response.delete_cookie(key=settings.REFRESH_TOKEN_COOKIE_NAME, path="/auth")
 	return schemas.MessageResponse(message="Đã đăng xuất")
@@ -178,7 +190,7 @@ def password_reset(
 	Returns:
 		MessageResponse thông báo email đã được gửi
 	"""
-	service.initiate_password_reset(db, payload.email)
+	token_service.initiate_password_reset(db, payload.email)
 	return schemas.MessageResponse(
 		message="Nếu tài khoản tồn tại, email hướng dẫn đã được gửi"
 	)
@@ -202,7 +214,7 @@ def confirm_password_reset(
 		HTTPException 400: Nếu token invalid, hết hạn, hoặc password không hợp lệ
 	"""
 	try:
-		result = service.confirm_password_reset(db, payload.token, payload.new_password)
+		result = token_service.confirm_password_reset(db, payload.token, payload.new_password)
 		return schemas.MessageResponse(
 			message=result["message"],
 			email=result.get("email")

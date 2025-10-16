@@ -1,1 +1,0 @@
-"""CRUD placeholder cho appointments."""

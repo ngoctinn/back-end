@@ -1,7 +1,7 @@
 """Lớp truy cập dữ liệu (CRUD) cho module auth."""
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import Session
@@ -145,3 +145,22 @@ def delete_expired_tokens(db: Session) -> int:
 	db.commit()
 
 	return result_verify.rowcount + result_reset.rowcount
+
+
+def cleanup_old_refresh_tokens(db: Session, days: int = 7) -> int:
+	"""Xóa revoked refresh tokens cũ hơn N ngày.
+
+	Args:
+		db: Session cơ sở dữ liệu
+		days: Số ngày để giữ lại (mặc định 7 ngày)
+
+	Returns:
+		Số lượng token đã xóa
+	"""
+	cutoff_date = datetime.utcnow() - timedelta(days=days)
+	stmt = delete(RefreshToken).where(
+		(RefreshToken.is_revoked == True) & (RefreshToken.created_at < cutoff_date)
+	)
+	result = db.execute(stmt)
+	db.commit()
+	return result.rowcount
