@@ -1,0 +1,1 @@
+"""Service placeholder cho staff."""

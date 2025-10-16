@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spa-customer-care-backend"
+version = "0.0.0"
+description = "Backend skeleton for Spa Customer Care Platform"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [ { name = "Your Name", email = "you@example.com" } ]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["tests"]

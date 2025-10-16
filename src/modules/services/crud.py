@@ -1,0 +1,1 @@
+"""CRUD placeholder cho services."""

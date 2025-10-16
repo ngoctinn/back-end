@@ -1,0 +1,1 @@
+"""Router placeholder cho appointments."""
