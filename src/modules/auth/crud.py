@@ -1,6 +1,7 @@
 """Lớp truy cập dữ liệu (CRUD) cho module auth."""
 
 from typing import Optional
+from datetime import datetime
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import Session
@@ -75,8 +76,10 @@ def revoke_refresh_tokens_of_user(db: Session, user_id: int) -> None:
 	db.commit()
 
 
-def create_verification_token(db: Session, user_id: int, token: str) -> VerificationToken:
-	vt = VerificationToken(user_id=user_id, token=token)
+def create_verification_token(db: Session, user_id: int, token: str, expires_at: datetime) -> VerificationToken:
+	"""Tạo và lưu token xác minh email."""
+
+	vt = VerificationToken(user_id=user_id, token=token, expires_at=expires_at)
 	db.add(vt)
 	db.commit()
 	db.refresh(vt)
@@ -84,18 +87,24 @@ def create_verification_token(db: Session, user_id: int, token: str) -> Verifica
 
 
 def get_verification_token(db: Session, token: str) -> Optional[VerificationToken]:
+	"""Lấy token xác minh từ DB."""
+
 	stmt = select(VerificationToken).where(VerificationToken.token == token)
 	return db.execute(stmt).scalars().first()
 
 
 def delete_verification_token(db: Session, token: str) -> None:
+	"""Xóa token xác minh sau khi xác thực thành công."""
+
 	stmt = delete(VerificationToken).where(VerificationToken.token == token)
 	db.execute(stmt)
 	db.commit()
 
 
-def create_reset_token(db: Session, user_id: int, token: str) -> ResetPasswordToken:
-	rt = ResetPasswordToken(user_id=user_id, token=token)
+def create_reset_token(db: Session, user_id: int, token: str, expires_at: datetime) -> ResetPasswordToken:
+	"""Tạo và lưu token đặt lại mật khẩu."""
+
+	rt = ResetPasswordToken(user_id=user_id, token=token, expires_at=expires_at)
 	db.add(rt)
 	db.commit()
 	db.refresh(rt)
@@ -103,11 +112,36 @@ def create_reset_token(db: Session, user_id: int, token: str) -> ResetPasswordTo
 
 
 def get_reset_token(db: Session, token: str) -> Optional[ResetPasswordToken]:
+	"""Lấy token đặt lại mật khẩu từ DB."""
+
 	stmt = select(ResetPasswordToken).where(ResetPasswordToken.token == token)
 	return db.execute(stmt).scalars().first()
 
 
 def delete_reset_token(db: Session, token: str) -> None:
+	"""Xóa token đặt lại mật khẩu sau khi sử dụng thành công."""
+
 	stmt = delete(ResetPasswordToken).where(ResetPasswordToken.token == token)
 	db.execute(stmt)
 	db.commit()
+
+
+def delete_expired_tokens(db: Session) -> int:
+	"""Xóa tất cả token xác minh hết hạn.
+
+	Returns:
+		Số lượng token đã xóa
+	"""
+	now = datetime.utcnow()
+
+	# Xóa verification token hết hạn
+	stmt_verify = delete(VerificationToken).where(VerificationToken.expires_at < now)
+	result_verify = db.execute(stmt_verify)
+
+	# Xóa reset token hết hạn
+	stmt_reset = delete(ResetPasswordToken).where(ResetPasswordToken.expires_at < now)
+	result_reset = db.execute(stmt_reset)
+
+	db.commit()
+
+	return result_verify.rowcount + result_reset.rowcount

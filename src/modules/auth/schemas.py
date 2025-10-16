@@ -33,3 +33,35 @@ class UserResponse(BaseModel):
 	email: EmailStr
 	roles: list[str]
 	is_active: bool
+
+
+class VerifyEmailRequest(BaseModel):
+	"""Yêu cầu xác minh email."""
+
+	token: str = Field(min_length=32)
+
+
+class ResendVerificationEmailRequest(BaseModel):
+	"""Yêu cầu gửi lại email xác minh."""
+
+	pass
+
+
+class PasswordResetRequest(BaseModel):
+	"""Yêu cầu đặt lại mật khẩu (bước 1: gửi email)."""
+
+	email: EmailStr
+
+
+class ConfirmPasswordResetRequest(BaseModel):
+	"""Yêu cầu xác nhận đặt lại mật khẩu (bước 2: confirm + password mới)."""
+
+	token: str = Field(min_length=32)
+	new_password: str = Field(min_length=8, max_length=128)
+
+
+class MessageResponse(BaseModel):
+	"""Phản hồi tin nhắn chung."""
+
+	message: str
+	email: Optional[EmailStr] = None

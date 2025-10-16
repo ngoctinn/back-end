@@ -1,4 +1,4 @@
-"""API endpoints cho module auth theo kế hoạch 0001.
+"""API endpoints cho module auth theo kế hoạch 0002.
 
 Cung cấp các path operations: đăng ký, xác minh email, đăng nhập,
 gia hạn, đăng xuất, yêu cầu reset và đặt lại mật khẩu.
@@ -15,33 +15,83 @@ from . import schemas, service
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=schemas.MessageResponse)
 def register(payload: schemas.RegisterRequest, db: Session = Depends(get_session)):
-	"""Đăng ký tài khoản mới, gửi email xác minh (giả lập)."""
+	"""Đăng ký tài khoản mới, gửi email xác minh.
 
+	Args:
+		payload: Email và mật khẩu người dùng
+		db: Session cơ sở dữ liệu
+
+	Returns:
+		MessageResponse với thông tin đăng ký thành công
+	"""
 	try:
-		user = service.register_user(db, payload.email, payload.password)
-		return {"message": "Đăng ký thành công. Vui lòng kiểm tra email để xác minh."}
+		result = service.register_user(db, payload.email, payload.password)
+		return schemas.MessageResponse(
+			message=result["message"],
+			email=result["email"]
+		)
 	except ValueError as e:
 		raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/verify")
-def verify_email(token: str, db: Session = Depends(get_session)):
-	"""Xác minh email từ token trong liên kết."""
+@router.post("/verify-email", response_model=schemas.MessageResponse)
+def verify_email(payload: schemas.VerifyEmailRequest, db: Session = Depends(get_session)):
+	"""Xác minh email từ token gửi trong email.
 
-	ok = service.verify_email(db, token)
-	if not ok:
-		raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã dùng")
-	return {"message": "Tài khoản đã được kích hoạt"}
+	Args:
+		payload: Token xác minh từ email link
+		db: Session cơ sở dữ liệu
+
+	Returns:
+		MessageResponse thông báo xác minh thành công
+	"""
+	try:
+		result = service.confirm_email(db, payload.token)
+		return schemas.MessageResponse(
+			message=result["message"],
+			email=result.get("email")
+		)
+	except ValueError as e:
+		raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/resend-verification-email", response_model=schemas.MessageResponse)
+def resend_verification_email(db: Session = Depends(get_session)):
+	"""Gửi lại email xác minh (dành cho user đã đăng ký nhưng chưa verify).
+
+	Endpoint này cần xác thực người dùng trước. Hiện tại là placeholder.
+
+	Args:
+		db: Session cơ sở dữ liệu
+
+	Returns:
+		MessageResponse thông báo gửi lại email
+	"""
+	# TODO: Thêm dependency get_current_user để lấy user ID
+	raise HTTPException(
+		status_code=501,
+		detail="Endpoint này sẽ được bật khi xác thực được triển khai"
+	)
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
 def login(
-	payload: schemas.LoginRequest, response: Response, db: Session = Depends(get_session)
+	payload: schemas.LoginRequest,
+	response: Response,
+	db: Session = Depends(get_session)
 ):
-	"""Đăng nhập, trả Access Token và set Refresh Token vào HTTP-only cookie."""
+	"""Đăng nhập, trả Access Token và set Refresh Token vào HTTP-only cookie.
 
+	Args:
+		payload: Email và mật khẩu
+		response: Response object để set cookie
+		db: Session cơ sở dữ liệu
+
+	Returns:
+		TokenResponse chứa access token
+	"""
 	try:
 		access_token, refresh_token, user = service.login_user(
 			db, payload.email, payload.password
@@ -72,11 +122,14 @@ def refresh(
 ):
 	"""Gia hạn Access Token dựa trên Refresh Token từ cookie.
 
-	Lưu ý: FastAPI không tự động lấy cookie nếu không chỉ định. Ở đây
-	dùng tham số `refresh_token` làm placeholder; trong thực tế có thể dùng
-	`Cookie` dependency để lấy từ cookie. Để đơn giản, tạm lấy từ header hoặc body nếu FE gửi.
-	"""
+	Args:
+		response: Response object
+		db: Session cơ sở dữ liệu
+		refresh_token: Refresh token từ cookie
 
+	Returns:
+		TokenResponse chứa access token mới
+	"""
 	if not refresh_token:
 		raise HTTPException(status_code=401, detail="Thiếu refresh token")
 
@@ -86,34 +139,73 @@ def refresh(
 	return schemas.TokenResponse(access_token=new_access)
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=schemas.MessageResponse)
 def logout(
 	response: Response,
 	db: Session = Depends(get_session),
 	refresh_token: str | None = Cookie(default=None, alias=settings.REFRESH_TOKEN_COOKIE_NAME),
 ):
-	"""Đăng xuất: thu hồi refresh token và xóa cookie."""
+	"""Đăng xuất: thu hồi refresh token và xóa cookie.
 
+	Args:
+		response: Response object để xóa cookie
+		db: Session cơ sở dữ liệu
+		refresh_token: Refresh token từ cookie
+
+	Returns:
+		MessageResponse thông báo đăng xuất thành công
+	"""
 	if refresh_token:
 		service.logout_user(db, refresh_token)
 	# Xóa cookie trên trình duyệt
 	response.delete_cookie(key=settings.REFRESH_TOKEN_COOKIE_NAME, path="/auth")
-	return {"message": "Đã đăng xuất"}
+	return schemas.MessageResponse(message="Đã đăng xuất")
 
 
-@router.post("/password-reset-request")
-def password_reset_request(email: str, db: Session = Depends(get_session)):
-	"""Yêu cầu đặt lại mật khẩu (không tiết lộ thông tin tồn tại tài khoản)."""
+@router.post("/password-reset", response_model=schemas.MessageResponse)
+def password_reset(
+	payload: schemas.PasswordResetRequest,
+	db: Session = Depends(get_session)
+):
+	"""Yêu cầu đặt lại mật khẩu (bước 1: gửi email).
 
-	service.request_password_reset(db, email)
-	return {"message": "Nếu tài khoản tồn tại, email hướng dẫn đã được gửi."}
+	Không tiết lộ thông tin tồn tại tài khoản (luôn trả success).
+
+	Args:
+		payload: Email của tài khoản
+		db: Session cơ sở dữ liệu
+
+	Returns:
+		MessageResponse thông báo email đã được gửi
+	"""
+	service.initiate_password_reset(db, payload.email)
+	return schemas.MessageResponse(
+		message="Nếu tài khoản tồn tại, email hướng dẫn đã được gửi"
+	)
 
 
-@router.post("/password-reset")
-def password_reset(token: str, new_password: str, db: Session = Depends(get_session)):
-	"""Đặt lại mật khẩu bằng token hợp lệ."""
+@router.post("/confirm-password-reset", response_model=schemas.MessageResponse)
+def confirm_password_reset(
+	payload: schemas.ConfirmPasswordResetRequest,
+	db: Session = Depends(get_session)
+):
+	"""Xác nhận đặt lại mật khẩu (bước 2: verify token + password mới).
 
-	ok = service.reset_password(db, token, new_password)
-	if not ok:
-		raise HTTPException(status_code=400, detail="Token không hợp lệ")
-	return {"message": "Mật khẩu đã được cập nhật"}
+	Args:
+		payload: Token từ email + mật khẩu mới
+		db: Session cơ sở dữ liệu
+
+	Returns:
+		MessageResponse thông báo mật khẩu đã được đặt lại
+
+	Raises:
+		HTTPException 400: Nếu token invalid, hết hạn, hoặc password không hợp lệ
+	"""
+	try:
+		result = service.confirm_password_reset(db, payload.token, payload.new_password)
+		return schemas.MessageResponse(
+			message=result["message"],
+			email=result.get("email")
+		)
+	except ValueError as e:
+		raise HTTPException(status_code=400, detail=str(e))

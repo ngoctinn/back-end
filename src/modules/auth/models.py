@@ -39,6 +39,7 @@ class VerificationToken(SQLModel, table=True):
 	id: Optional[int] = Field(default=None, primary_key=True)
 	user_id: int = Field(index=True, nullable=False)
 	token: str = Field(index=True, unique=True, nullable=False)
+	expires_at: datetime = Field(nullable=False)
 	created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
@@ -48,4 +49,6 @@ class ResetPasswordToken(SQLModel, table=True):
 	id: Optional[int] = Field(default=None, primary_key=True)
 	user_id: int = Field(index=True, nullable=False)
 	token: str = Field(index=True, unique=True, nullable=False)
+	expires_at: datetime = Field(nullable=False)
+	created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 	created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)

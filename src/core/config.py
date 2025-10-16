@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
 
+    # Token expiry settings
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    RESET_TOKEN_EXPIRE_HOURS: int = 1
+
     # Mail settings
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
