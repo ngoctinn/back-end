@@ -6,7 +6,7 @@ Giả định tính năng đã được triển khai xong (code) và có kế ho
 
 ## NHIỆM VỤ
 
-Thực hiện đánh giá code toàn diện. Lưu tài liệu về các phát hiện vào `docs/features/<N>_REVIEW.md`.
+Thực hiện đánh giá code toàn diện. Lưu tài liệu về các phát hiện vào duy nhất 1 file `docs/features/<N>_REVIEW.md`.
 
 ## YÊU CẦU KIỂM TRA CHUYÊN SÂU
 
