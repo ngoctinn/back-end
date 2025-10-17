@@ -107,27 +107,47 @@ uvicorn src.main:app --reload
 
 ### 🔐 Auth Module (Xác Thực)
 
-📖 **[Chi tiết: `docs/AUTH_API_GUIDE.md`](./AUTH_API_GUIDE.md)**
+📖 **[Chi tiết: `docs/DOCUMENTATION.md#-module-auth`](./docs/DOCUMENTATION.md)**
 
-Cung cấp:
+Module quản lý xác thực & ủy quyền với JWT + Email verification.
 
-- ✅ Đăng ký với xác minh email
-- ✅ Đăng nhập (JWT + Refresh Token)
-- ✅ Gia hạn token (Refresh)
-- ✅ Đăng xuất (Revoke token)
-- ✅ Quên mật khẩu + Reset password
+**Tính năng:**
 
-**Quick endpoints:**
+- ✅ **Đăng ký** với xác minh email (OTP token, TTL 24h)
+- ✅ **Đăng nhập** tạo JWT access token (TTL 15 min) + Refresh token (TTL 7 ngày)
+- ✅ **Gia hạn token** từ refresh token
+- ✅ **Đăng xuất** với revoke token
+- ✅ **Quên mật khẩu** + Đặt lại mật khẩu qua email (OTP token, TTL 1h)
+- ✅ **Gửi lại email xác minh** nếu không nhận được email đầu tiên
+
+**Models:**
+
+- `User` - Tài khoản người dùng (email, password_hash, roles, is_active)
+- `RefreshToken` - Lưu refresh token (opaque, có thể revoke)
+- `VerificationToken` - Token xác minh email (one-time use, TTL 24h)
+- `ResetPasswordToken` - Token đặt lại mật khẩu (one-time use, TTL 1h)
+
+**API Endpoints:**
 
 ```bash
-POST   /auth/register                    # Đăng ký
+POST   /auth/register                    # Đăng ký tài khoản
 POST   /auth/verify-email                # Xác minh email
+POST   /auth/resend-verification-email   # Gửi lại email xác minh
 POST   /auth/login                       # Đăng nhập
-POST   /auth/refresh                     # Gia hạn token
-POST   /auth/logout                      # Đăng xuất
-POST   /auth/password-reset              # Quên mật khẩu
-POST   /auth/confirm-password-reset      # Đặt lại mật khẩu
+POST   /auth/refresh                     # Gia hạn access token
+POST   /auth/logout                      # Đăng xuất (revoke refresh token)
+POST   /auth/password-reset              # Yêu cầu reset password
+POST   /auth/confirm-password-reset      # Xác nhận & đặt mật khẩu mới
+GET    /auth/me                          # Lấy thông tin user hiện tại
 ```
+
+**Luồng sử dụng:**
+
+1. Đăng ký → Email xác minh → Verify email → Sẵn sàng đăng nhập
+2. Đăng nhập → Nhận JWT access token + HTTP-only refresh token cookie
+3. Gọi API với header `Authorization: Bearer <access_token>`
+4. Khi access token hết hạn → Gọi `/auth/refresh` để tạo token mới
+5. Đăng xuất → Revoke refresh token, xóa cookie
 
 ### 📧 Email Feature
 

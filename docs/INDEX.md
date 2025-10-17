@@ -1,16 +1,17 @@
-# ��� Tài Liệu Dự Án - Index
+# ��� Tài Liệu Dự Án - Index
 
 **Danh mục tài liệu cho dự án Spa Online CRM Backend.**
 
 ---
 
-## ��� **ĐỌC TRƯỚC TIÊN**
+## ��� **ĐỌC TRƯỚC TIÊN**
 
-### ��� [DOCUMENTATION.md](./DOCUMENTATION.md) ⭐
+### ��� [DOCUMENTATION.md](./DOCUMENTATION.md) ⭐
 
 **File tài liệu chính - Hướng dẫn & Kế hoạch dự án.**
 
 Bao gồm:
+
 - ✅ Khởi động nhanh (5 phút)
 - ✅ Kiến trúc dự án
 - ✅ Tất cả modules (Auth, Customers, Services, Appointments, Staff)
@@ -21,24 +22,25 @@ Bao gồm:
 
 ---
 
-## ��� Tài Liệu Bổ Sung
+## 📖 Tài Liệu Bổ Sung
 
-| File | Mục Đích |
-| :--- | :--- |
-| **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)** | Mô tả sản phẩm & business requirements |
-| **[README.md](../README.md)** | Project overview |
+| File                                         | Mục Đích                                                    |
+| :------------------------------------------- | :---------------------------------------------------------- |
+| **[AUTH_API_GUIDE.md](./AUTH_API_GUIDE.md)** | Hướng dẫn chi tiết Auth Module (flows, endpoints, examples) |
+| **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)**   | Mô tả sản phẩm & business requirements                      |
+| **[README.md](../README.md)**                | Project overview                                            |
 
 ---
 
-## ��� Kế Hoạch
+## ��� Kế Hoạch
 
-| Thư mục | Mục Đích |
-| :--- | :--- |
+| Thư mục                      | Mục Đích                           |
+| :--------------------------- | :--------------------------------- |
 | **[features/](./features/)** | Kế hoạch phát triển từng tính năng |
 
 ---
 
-## ���️ Cấu Trúc
+## ���️ Cấu Trúc
 
 ```
 docs/
@@ -50,7 +52,7 @@ docs/
 
 ---
 
-## ��� Quick Links
+## ��� Quick Links
 
 Trong DOCUMENTATION.md, dùng Ctrl+F để tìm:
 
@@ -62,4 +64,4 @@ Trong DOCUMENTATION.md, dùng Ctrl+F để tìm:
 
 ---
 
-**Bắt đầu?** → Mở [DOCUMENTATION.md](./DOCUMENTATION.md) & đọc section [��� Bắt Đầu Nhanh]
+**Bắt đầu?** → Mở [DOCUMENTATION.md](./DOCUMENTATION.md) & đọc section [��� Bắt Đầu Nhanh]
