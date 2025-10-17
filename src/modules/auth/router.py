@@ -11,7 +11,7 @@ from src.core.config import settings
 from src.core.db import get_session
 from src.core.dependencies import get_current_user
 from . import schemas
-from . import auth_service, token_service
+from . import auth_service, token_service, crud
 from .models import User
 
 
@@ -64,31 +64,41 @@ def verify_email(
 
 @router.post("/resend-verification-email", response_model=schemas.MessageResponse)
 def resend_verification_email(
-    db: Session = Depends(get_session), current_user: User = Depends(get_current_user)
+    payload: schemas.ResendVerificationEmailRequest, db: Session = Depends(get_session)
 ):
-    """Gửi lại email xác minh cho user hiện tại.
+    """Gửi lại email xác minh cho user dựa trên email.
 
-    Endpoint này yêu cầu xác thực với JWT Bearer token.
+    Endpoint này không yêu cầu xác thực JWT - chỉ cần email của người dùng.
+    Có thể gọi ngay sau khi đăng ký nếu user không nhận được email.
 
     Args:
+            payload: Email của người dùng
             db: Session cơ sở dữ liệu
-            current_user: User hiện tại từ JWT
 
     Returns:
             MessageResponse thông báo gửi lại email
     """
-    # Nếu user đã active, không cần gửi lại
-    if current_user.is_active:
-        return schemas.MessageResponse(
-            message="Tài khoản của bạn đã được kích hoạt", email=current_user.email
-        )
-
     try:
-        success = token_service.initiate_email_verification(db, current_user.id)
+        user = crud.get_user_by_email(db, payload.email)
+        if not user:
+            # Không tiết lộ email có tồn tại hay không vì lý do bảo mật
+            return schemas.MessageResponse(
+                message="Nếu email tồn tại, email xác minh sẽ được gửi lại",
+                email=payload.email,
+            )
+
+        # Nếu user đã active, không cần gửi lại
+        if user.is_active:
+            return schemas.MessageResponse(
+                message="Tài khoản của bạn đã được kích hoạt", email=user.email
+            )
+
+        # Gửi lại email
+        success = token_service.initiate_email_verification(db, user.id)
         if not success:
             raise HTTPException(status_code=500, detail="Lỗi khi gửi email")
         return schemas.MessageResponse(
-            message="Email xác minh đã được gửi lại", email=current_user.email
+            message="Email xác minh đã được gửi lại", email=user.email
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi: {str(e)}")
