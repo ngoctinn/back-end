@@ -197,34 +197,37 @@ Xác thực & ủy quyền người dùng. Hỗ trợ JWT tokens, email verifica
 ### 📊 Database Models
 
 #### `User`
+
 Bảng người dùng chính.
 
-| Cột              | Loại       | Constraint  | Mô Tả                              |
-| :-----------     | :---------- | :---------- | :------------------------------- |
-| `id`             | Integer     | PK          | User ID                            |
-| `email`          | String      | UK, NOT NULL | Email (unique)                     |
-| `password_hash`  | String      | NOT NULL    | Mật khẩu hash (bcrypt)             |
-| `full_name`      | String      | NULL        | Họ tên đầy đủ                      |
-| `phone_number`   | String      | NULL        | Số điện thoại                      |
-| `is_active`      | Boolean     | Default:True| Tài khoản kích hoạt                |
-| `roles`          | JSON        | Default:[]  | Danh sách vai trò ["admin", "user"]|
-| `created_at`     | DateTime    | Default:now | Thời gian tạo                      |
-| `updated_at`     | DateTime    | Default:now | Thời gian cập nhật                 |
-| `deleted_at`     | DateTime    | NULL        | Soft delete                        |
+| Cột             | Loại     | Constraint   | Mô Tả                               |
+| :-------------- | :------- | :----------- | :---------------------------------- |
+| `id`            | Integer  | PK           | User ID                             |
+| `email`         | String   | UK, NOT NULL | Email (unique)                      |
+| `password_hash` | String   | NOT NULL     | Mật khẩu hash (bcrypt)              |
+| `full_name`     | String   | NULL         | Họ tên đầy đủ                       |
+| `phone_number`  | String   | NULL         | Số điện thoại                       |
+| `is_active`     | Boolean  | Default:True | Tài khoản kích hoạt                 |
+| `roles`         | JSON     | Default:[]   | Danh sách vai trò ["admin", "user"] |
+| `created_at`    | DateTime | Default:now  | Thời gian tạo                       |
+| `updated_at`    | DateTime | Default:now  | Thời gian cập nhật                  |
+| `deleted_at`    | DateTime | NULL         | Soft delete                         |
 
 #### `RefreshToken`
+
 Lưu trữ refresh tokens để gia hạn access tokens.
 
-| Cột         | Loại    | Mô Tả                         |
-| :---------- | :------ | :---------------------------- |
-| `id`        | Integer | PK                            |
-| `user_id`   | Integer | FK → User.id                  |
-| `token`     | String  | Opaque token (UUID)           |
-| `is_revoked`| Boolean | Token bị revoke               |
-| `expires_at`| DateTime| Thời gian hết hạn (7 ngày)    |
-| `created_at`| DateTime| Thời gian tạo                 |
+| Cột          | Loại     | Mô Tả                      |
+| :----------- | :------- | :------------------------- |
+| `id`         | Integer  | PK                         |
+| `user_id`    | Integer  | FK → User.id               |
+| `token`      | String   | Opaque token (UUID)        |
+| `is_revoked` | Boolean  | Token bị revoke            |
+| `expires_at` | DateTime | Thời gian hết hạn (7 ngày) |
+| `created_at` | DateTime | Thời gian tạo              |
 
 #### `VerificationToken` & `ResetPasswordToken`
+
 Tương tự, lưu verification emails & password reset.
 
 ### 🔄 Luồng Xác Thực
@@ -241,6 +244,7 @@ Tương tự, lưu verification emails & password reset.
 ```
 
 Quy trình:
+
 1. Validate email (format, not exists)
 2. Hash password → bcrypt
 3. Tạo User (is_active=False)
@@ -257,6 +261,7 @@ Quy trình:
 ```
 
 Quy trình:
+
 1. Tìm token trong DB
 2. Kiểm tra chưa hết hạn (expires_at > now)
 3. Update User: is_active=True
@@ -288,6 +293,7 @@ Response:
 Headers: `Set-Cookie: refresh_token=<opaque>; HttpOnly; SameSite=Lax; Max-Age=604800`
 
 Quy trình:
+
 1. Tìm user theo email
 2. Verify password (bcrypt)
 3. Kiểm tra is_active=True
@@ -314,6 +320,7 @@ Response:
 ```
 
 Quy trình:
+
 1. Lấy refresh_token từ cookie
 2. Tìm RefreshToken trong DB
 3. Kiểm tra is_revoked=False, expires_at > now
@@ -329,6 +336,7 @@ Quy trình:
 Cookie: `refresh_token=<opaque>`
 
 Quy trình:
+
 1. Lấy refresh_token từ cookie
 2. Set RefreshToken.is_revoked=True
 3. Xóa cookie
@@ -349,6 +357,7 @@ Quy trình:
 Response: `{ "message": "Nếu email tồn tại, hướng dẫn đã được gửi" }` (luôn)
 
 Quy trình:
+
 1. Tìm user theo email
 2. Nếu tồn tại:
    - Tạo ResetPasswordToken (TTL 1h)
@@ -366,6 +375,7 @@ Quy trình:
 ```
 
 Quy trình:
+
 1. Tìm ResetPasswordToken
 2. Kiểm tra expires_at > now
 3. Validate new_password (min 8 ký tự)
@@ -397,16 +407,16 @@ Signature: HMAC-SHA256(base64(header) + "." + base64(payload), SECRET_KEY)
 
 ### 📝 API Endpoints
 
-| Method | Endpoint                     | Auth | Mô Tả              |
-| :---   | :--------------------------- | :--- | :----------------- |
-| POST   | `/auth/register`             | -    | Đăng ký            |
-| POST   | `/auth/verify-email`         | -    | Verify email       |
-| POST   | `/auth/login`                | -    | Đăng nhập          |
-| POST   | `/auth/refresh`              | -    | Gia hạn token      |
-| POST   | `/auth/logout`               | ✓    | Đăng xuất          |
-| POST   | `/auth/password-reset`       | -    | Quên mật khẩu      |
-| POST   | `/auth/confirm-password-reset` | - | Confirm reset pw   |
-| GET    | `/auth/me`                   | ✓    | Lấy thông tin user |
+| Method | Endpoint                       | Auth | Mô Tả              |
+| :----- | :----------------------------- | :--- | :----------------- |
+| POST   | `/auth/register`               | -    | Đăng ký            |
+| POST   | `/auth/verify-email`           | -    | Verify email       |
+| POST   | `/auth/login`                  | -    | Đăng nhập          |
+| POST   | `/auth/refresh`                | -    | Gia hạn token      |
+| POST   | `/auth/logout`                 | ✓    | Đăng xuất          |
+| POST   | `/auth/password-reset`         | -    | Quên mật khẩu      |
+| POST   | `/auth/confirm-password-reset` | -    | Confirm reset pw   |
+| GET    | `/auth/me`                     | ✓    | Lấy thông tin user |
 
 ---
 
@@ -416,34 +426,34 @@ Quản lý hồ sơ khách hàng CRM.
 
 ### 📊 Database Model: `Customer`
 
-| Cột              | Loại    | Constraint | Mô Tả                      |
-| :----------      | :------ | :--------- | :------------------------- |
-| `id`             | Integer | PK         | Customer ID                |
-| `user_id`        | Integer | FK, NULL   | Link đến User account      |
-| `full_name`      | String  | NOT NULL   | Họ tên khách hàng          |
-| `phone_number`   | String  | UK         | Số điện thoại              |
-| `email`          | String  | NULL       | Email                      |
-| `date_of_birth`  | Date    | NULL       | Ngày sinh                  |
-| `gender`         | String  | NULL       | Giới tính (M/F/Other)      |
-| `address`        | String  | NULL       | Địa chỉ                    |
-| `notes`          | Text    | NULL       | Ghi chú CSKH               |
-| `skin_type`      | String  | NULL       | Loại da (Normal/Dry/Oily)  |
-| `health_conditions` | Text | NULL       | Tình trạng sức khỏe        |
-| `is_active`      | Boolean | Default:True | Khách hàng hoạt động      |
-| `created_at`     | DateTime| Default:now| Thời gian tạo              |
-| `updated_at`     | DateTime| Default:now| Thời gian cập nhật         |
-| `deleted_at`     | DateTime| NULL       | Soft delete                |
+| Cột                 | Loại     | Constraint   | Mô Tả                     |
+| :------------------ | :------- | :----------- | :------------------------ |
+| `id`                | Integer  | PK           | Customer ID               |
+| `user_id`           | Integer  | FK, NULL     | Link đến User account     |
+| `full_name`         | String   | NOT NULL     | Họ tên khách hàng         |
+| `phone_number`      | String   | UK           | Số điện thoại             |
+| `email`             | String   | NULL         | Email                     |
+| `date_of_birth`     | Date     | NULL         | Ngày sinh                 |
+| `gender`            | String   | NULL         | Giới tính (M/F/Other)     |
+| `address`           | String   | NULL         | Địa chỉ                   |
+| `notes`             | Text     | NULL         | Ghi chú CSKH              |
+| `skin_type`         | String   | NULL         | Loại da (Normal/Dry/Oily) |
+| `health_conditions` | Text     | NULL         | Tình trạng sức khỏe       |
+| `is_active`         | Boolean  | Default:True | Khách hàng hoạt động      |
+| `created_at`        | DateTime | Default:now  | Thời gian tạo             |
+| `updated_at`        | DateTime | Default:now  | Thời gian cập nhật        |
+| `deleted_at`        | DateTime | NULL         | Soft delete               |
 
 ### 📝 API Endpoints
 
-| Method | Endpoint                    | Auth | Mô Tả                |
-| :---   | :-------------------------- | :--- | :------------------- |
-| POST   | `/customers`                | ✓    | Tạo khách hàng mới   |
-| GET    | `/customers/{id}`           | ✓    | Lấy chi tiết         |
-| GET    | `/customers`                | ✓    | Danh sách (phân trang)|
-| PUT    | `/customers/{id}`           | ✓    | Cập nhật             |
-| DELETE | `/customers/{id}`           | ✓    | Xóa (soft delete)    |
-| GET    | `/customers/search`         | ✓    | Tìm kiếm             |
+| Method | Endpoint            | Auth | Mô Tả                  |
+| :----- | :------------------ | :--- | :--------------------- |
+| POST   | `/customers`        | ✓    | Tạo khách hàng mới     |
+| GET    | `/customers/{id}`   | ✓    | Lấy chi tiết           |
+| GET    | `/customers`        | ✓    | Danh sách (phân trang) |
+| PUT    | `/customers/{id}`   | ✓    | Cập nhật               |
+| DELETE | `/customers/{id}`   | ✓    | Xóa (soft delete)      |
+| GET    | `/customers/search` | ✓    | Tìm kiếm               |
 
 ---
 
@@ -453,26 +463,26 @@ Quản lý dịch vụ spa & sản phẩm.
 
 ### 📊 Database Model: `Service`
 
-| Cột            | Loại     | Constraint | Mô Tả                      |
-| :----------    | :------- | :--------- | :------------------------- |
-| `id`           | Integer  | PK         | Service ID                 |
-| `name`         | String   | NOT NULL   | Tên dịch vụ                |
-| `description`  | Text     | NULL       | Mô tả chi tiết             |
-| `price`        | Decimal  | NOT NULL   | Giá dịch vụ                |
-| `duration_min` | Integer  | NOT NULL   | Thời lượng (phút)          |
-| `is_active`    | Boolean  | Default:True | Dịch vụ hoạt động        |
-| `created_at`   | DateTime | Default:now| Thời gian tạo              |
-| `updated_at`   | DateTime | Default:now| Thời gian cập nhật         |
+| Cột            | Loại     | Constraint   | Mô Tả              |
+| :------------- | :------- | :----------- | :----------------- |
+| `id`           | Integer  | PK           | Service ID         |
+| `name`         | String   | NOT NULL     | Tên dịch vụ        |
+| `description`  | Text     | NULL         | Mô tả chi tiết     |
+| `price`        | Decimal  | NOT NULL     | Giá dịch vụ        |
+| `duration_min` | Integer  | NOT NULL     | Thời lượng (phút)  |
+| `is_active`    | Boolean  | Default:True | Dịch vụ hoạt động  |
+| `created_at`   | DateTime | Default:now  | Thời gian tạo      |
+| `updated_at`   | DateTime | Default:now  | Thời gian cập nhật |
 
 ### 📝 API Endpoints
 
-| Method | Endpoint              | Auth | Mô Tả                |
-| :---   | :-------------------- | :--- | :------------------- |
-| POST   | `/services`           | ✓    | Tạo dịch vụ          |
-| GET    | `/services/{id}`      | -    | Lấy chi tiết         |
-| GET    | `/services`           | -    | Danh sách            |
-| PUT    | `/services/{id}`      | ✓    | Cập nhật             |
-| DELETE | `/services/{id}`      | ✓    | Xóa                  |
+| Method | Endpoint         | Auth | Mô Tả        |
+| :----- | :--------------- | :--- | :----------- |
+| POST   | `/services`      | ✓    | Tạo dịch vụ  |
+| GET    | `/services/{id}` | -    | Lấy chi tiết |
+| GET    | `/services`      | -    | Danh sách    |
+| PUT    | `/services/{id}` | ✓    | Cập nhật     |
+| DELETE | `/services/{id}` | ✓    | Xóa          |
 
 ---
 
@@ -482,29 +492,29 @@ Quản lý lịch hẹn khách hàng - dịch vụ - nhân viên.
 
 ### 📊 Database Model: `Appointment`
 
-| Cột                | Loại    | Constraint | Mô Tả                        |
-| :----------        | :------ | :--------- | :--------------------------- |
-| `id`               | Integer | PK         | Appointment ID               |
-| `customer_id`      | Integer | FK         | Khách hàng                   |
-| `service_id`       | Integer | FK         | Dịch vụ                      |
-| `staff_id`         | Integer | FK         | Nhân viên thực hiện           |
-| `scheduled_at`     | DateTime| NOT NULL   | Thời gian bắt đầu            |
-| `scheduled_end_at` | DateTime| NOT NULL   | Thời gian kết thúc           |
-| `status`           | String  | Default:pending | pending/confirmed/cancelled/completed |
-| `notes`            | Text    | NULL       | Ghi chú                      |
-| `created_at`       | DateTime| Default:now| Thời gian tạo                |
-| `updated_at`       | DateTime| Default:now| Thời gian cập nhật           |
+| Cột                | Loại     | Constraint      | Mô Tả                                 |
+| :----------------- | :------- | :-------------- | :------------------------------------ |
+| `id`               | Integer  | PK              | Appointment ID                        |
+| `customer_id`      | Integer  | FK              | Khách hàng                            |
+| `service_id`       | Integer  | FK              | Dịch vụ                               |
+| `staff_id`         | Integer  | FK              | Nhân viên thực hiện                   |
+| `scheduled_at`     | DateTime | NOT NULL        | Thời gian bắt đầu                     |
+| `scheduled_end_at` | DateTime | NOT NULL        | Thời gian kết thúc                    |
+| `status`           | String   | Default:pending | pending/confirmed/cancelled/completed |
+| `notes`            | Text     | NULL            | Ghi chú                               |
+| `created_at`       | DateTime | Default:now     | Thời gian tạo                         |
+| `updated_at`       | DateTime | Default:now     | Thời gian cập nhật                    |
 
 ### 📝 API Endpoints
 
-| Method | Endpoint                           | Auth | Mô Tả                    |
-| :---   | :--------------------------------- | :--- | :----------------------- |
-| POST   | `/appointments`                    | ✓    | Đặt lịch hẹn             |
-| GET    | `/appointments/{id}`               | ✓    | Chi tiết lịch hẹn        |
-| GET    | `/appointments`                    | ✓    | Danh sách (của user)     |
-| GET    | `/appointments/staff/{staff_id}`   | ✓    | Lịch của nhân viên       |
-| PUT    | `/appointments/{id}`               | ✓    | Cập nhật lịch hẹn        |
-| DELETE | `/appointments/{id}`               | ✓    | Hủy lịch hẹn             |
+| Method | Endpoint                         | Auth | Mô Tả                |
+| :----- | :------------------------------- | :--- | :------------------- |
+| POST   | `/appointments`                  | ✓    | Đặt lịch hẹn         |
+| GET    | `/appointments/{id}`             | ✓    | Chi tiết lịch hẹn    |
+| GET    | `/appointments`                  | ✓    | Danh sách (của user) |
+| GET    | `/appointments/staff/{staff_id}` | ✓    | Lịch của nhân viên   |
+| PUT    | `/appointments/{id}`             | ✓    | Cập nhật lịch hẹn    |
+| DELETE | `/appointments/{id}`             | ✓    | Hủy lịch hẹn         |
 
 ---
 
@@ -514,28 +524,28 @@ Quản lý nhân viên spa.
 
 ### 📊 Database Model: `Staff`
 
-| Cột             | Loại    | Constraint | Mô Tả                      |
-| :----------     | :------ | :--------- | :------------------------- |
-| `id`            | Integer | PK         | Staff ID                   |
-| `user_id`       | Integer | FK         | Link User account          |
-| `full_name`     | String  | NOT NULL   | Họ tên nhân viên           |
-| `phone_number`  | String  | NULL       | Số điện thoại              |
-| `email`         | String  | NULL       | Email                      |
-| `position`      | String  | NOT NULL   | Vị trí (therapist/receptionist/manager) |
-| `department`    | String  | NULL       | Phòng ban                  |
-| `is_active`     | Boolean | Default:True | Nhân viên hoạt động      |
-| `created_at`    | DateTime| Default:now| Thời gian tạo              |
-| `updated_at`    | DateTime| Default:now| Thời gian cập nhật         |
+| Cột            | Loại     | Constraint   | Mô Tả                                   |
+| :------------- | :------- | :----------- | :-------------------------------------- |
+| `id`           | Integer  | PK           | Staff ID                                |
+| `user_id`      | Integer  | FK           | Link User account                       |
+| `full_name`    | String   | NOT NULL     | Họ tên nhân viên                        |
+| `phone_number` | String   | NULL         | Số điện thoại                           |
+| `email`        | String   | NULL         | Email                                   |
+| `position`     | String   | NOT NULL     | Vị trí (therapist/receptionist/manager) |
+| `department`   | String   | NULL         | Phòng ban                               |
+| `is_active`    | Boolean  | Default:True | Nhân viên hoạt động                     |
+| `created_at`   | DateTime | Default:now  | Thời gian tạo                           |
+| `updated_at`   | DateTime | Default:now  | Thời gian cập nhật                      |
 
 ### 📝 API Endpoints
 
-| Method | Endpoint          | Auth | Mô Tả             |
-| :---   | :---------------- | :--- | :---------------- |
-| POST   | `/staff`          | ✓    | Thêm nhân viên     |
-| GET    | `/staff/{id}`     | ✓    | Chi tiết           |
-| GET    | `/staff`          | ✓    | Danh sách          |
-| PUT    | `/staff/{id}`     | ✓    | Cập nhật           |
-| DELETE | `/staff/{id}`     | ✓    | Xóa               |
+| Method | Endpoint      | Auth | Mô Tả          |
+| :----- | :------------ | :--- | :------------- |
+| POST   | `/staff`      | ✓    | Thêm nhân viên |
+| GET    | `/staff/{id}` | ✓    | Chi tiết       |
+| GET    | `/staff`      | ✓    | Danh sách      |
+| PUT    | `/staff/{id}` | ✓    | Cập nhật       |
+| DELETE | `/staff/{id}` | ✓    | Xóa            |
 
 ---
 
@@ -568,6 +578,7 @@ alembic downgrade <revision-id>
 ### Quy Trình Thêm Model Mới
 
 1. Tạo model mới trong `src/modules/<domain>/models.py`
+
    ```python
    class NewModel(SQLModel, table=True):
        __tablename__ = "new_models"
@@ -578,6 +589,7 @@ alembic downgrade <revision-id>
 2. Import model trong `src/core/db.py` (để Alembic phát hiện)
 
 3. Tạo migration
+
    ```bash
    alembic revision --autogenerate -m "create new_models table"
    ```
@@ -694,6 +706,7 @@ class TestAuthRegister:
 **Triệu chứng:** Đăng ký thành công nhưng không nhận email
 
 **Giải pháp:**
+
 - Kiểm tra `.env`: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`
 - Nếu dùng Gmail: [Bật "Less secure app"](https://myaccount.google.com/app-passwords) hoặc dùng App Password
 - Kiểm tra logs: `tail -f logs/app.log | grep email`
@@ -713,6 +726,7 @@ class TestAuthRegister:
 **Triệu chứng:** `401 Unauthorized - Token expired`
 
 **Giải pháp:**
+
 - Sử dụng refresh endpoint: `POST /auth/refresh`
 - Kiểm tra `ACCESS_TOKEN_EXPIRE_MINUTES` trong `.env` (default 15)
 - Kiểm tra đồng hồ server
@@ -722,6 +736,7 @@ class TestAuthRegister:
 **Triệu chứng:** `400 Bad Request - Invalid or expired token`
 
 **Giải pháp:**
+
 - Token có TTL 1 giờ → copy & paste token nhanh
 - Kiểm tra token không có ký tự bị mã hóa
 - Restart server (nếu thay đổi `SECRET_KEY`)
@@ -731,6 +746,7 @@ class TestAuthRegister:
 **Triệu chứng:** `sqlalchemy.exc.OperationalError`
 
 **Giải pháp:**
+
 - Kiểm tra PostgreSQL đang chạy: `psql -l`
 - Kiểm tra `DATABASE_URL` trong `.env`
 - Test connection: `psql postgresql://user:pass@localhost:5432/spa_crm`
@@ -740,7 +756,9 @@ class TestAuthRegister:
 **Triệu chứng:** Frontend gặp CORS error
 
 **Giải pháp:**
+
 - Thêm vào `src/main.py`:
+
   ```python
   from fastapi.middleware.cors import CORSMiddleware
 
@@ -758,6 +776,7 @@ class TestAuthRegister:
 **Q: Làm cách nào để thêm role/permission cho user?**
 
 A:
+
 ```python
 # User model có field: roles: list[str] = Field(default=[])
 # Trong service:
@@ -778,6 +797,7 @@ async def admin_endpoint(user = Depends(get_current_user)):
 **Q: Cách implement 2FA?**
 
 A: Thêm OTP table & logic:
+
 1. Tạo model: `class OTP(SQLModel, table=True): ...`
 2. Trong service: Tạo OTP 6 ký tự, gửi SMS
 3. Endpoint `/auth/verify-otp?code=123456`
@@ -785,6 +805,7 @@ A: Thêm OTP table & logic:
 **Q: Database backup?**
 
 A:
+
 ```bash
 # Backup
 pg_dump -U user -d spa_crm > backup.sql
@@ -807,6 +828,7 @@ Trước khi deploy production:
 - [ ] **HTTPS:** Sử dụng HTTPS (không HTTP)
 - [ ] **CORS:** Giới hạn origins tới frontend domain chính xác
 - [ ] **Rate Limiting:** Thêm rate limit để chống brute force
+
   ```python
   from slowapi import Limiter
   from slowapi.util import get_remote_address
@@ -819,6 +841,7 @@ Trước khi deploy production:
   async def login(...):
       ...
   ```
+
 - [ ] **Input Validation:** Validate tất cả inputs (Pydantic tự validate)
 - [ ] **SQL Injection:** Sử dụng SQLModel/SQLAlchemy (an toàn tự động)
 - [ ] **CSRF Protection:** Thêm CSRF tokens nếu dùng forms
@@ -857,14 +880,17 @@ Trước khi deploy production:
 ## 🎓 Next Steps
 
 1. **Bắt đầu development:**
+
    - Đọc phần [🎯 Bắt Đầu Nhanh](#-bắt-đầu-nhanh)
    - Chạy server & kiểm tra Swagger docs
 
 2. **Hiểu kiến trúc:**
+
    - Đọc [🏗️ Kiến Trúc Dự Án](#-kiến-trúc-dự-án)
    - Khám phá code trong `src/modules/`
 
 3. **Implement features:**
+
    - Chọn module muốn làm (auth, customers, etc.)
    - Follow pattern: models → schemas → crud → service → router
    - Thêm unit tests
@@ -877,10 +903,10 @@ Trước khi deploy production:
 ---
 
 **Cách sử dụng tài liệu này:**
+
 - **Bắt đầu?** → Đọc [🎯 Bắt Đầu Nhanh](#-bắt-đầu-nhanh)
 - **Cần chi tiết module?** → Mở section module (🔐 Auth, 👥 Customers, etc.)
 - **Có vấn đề?** → Tham khảo [📋 Troubleshooting](#-troubleshooting--faq)
 - **Deploy?** → Kiểm tra [🔒 Security Checklist](#-security-checklist)
 
 **Phiên bản tài liệu:** 1.0 | Cập nhật: October 2025
-

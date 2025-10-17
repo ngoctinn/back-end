@@ -11,6 +11,7 @@
 **File tài liệu chính & duy nhất bạn cần.**
 
 Bao gồm:
+
 - ✅ Khởi động nhanh (5 phút)
 - ✅ Kiến trúc dự án
 - ✅ Tất cả modules (Auth, Customers, Services, Appointments, Staff)
@@ -25,11 +26,11 @@ Bao gồm:
 
 ## � Tài Liệu Bổ Sung (Optional)
 
-| File | Mục Đích | Dùng Khi |
-| :--- | :--- | :--- |
-| **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)** | Mô tả sản phẩm & business | Hiểu requirements business |
-| **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** | Tóm tắt triển khai | Review quá trình implement |
-| **[README.md](../README.md)** | Project overview | Bắt đầu lần đầu |
+| File                                                         | Mục Đích                  | Dùng Khi                   |
+| :----------------------------------------------------------- | :------------------------ | :------------------------- |
+| **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)**                   | Mô tả sản phẩm & business | Hiểu requirements business |
+| **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** | Tóm tắt triển khai        | Review quá trình implement |
+| **[README.md](../README.md)**                                | Project overview          | Bắt đầu lần đầu            |
 
 ---
 
