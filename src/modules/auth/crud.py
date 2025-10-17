@@ -168,7 +168,7 @@ def cleanup_old_refresh_tokens(db: Session, days: int = 7) -> int:
     Returns:
             Số lượng token đã xóa
     """
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = get_utc_now() - timedelta(days=days)
     stmt = delete(RefreshToken).where(
         (RefreshToken.is_revoked == True) & (RefreshToken.created_at < cutoff_date)
     )
