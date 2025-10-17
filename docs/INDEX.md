@@ -24,11 +24,12 @@ Bao gồm:
 
 ## 📖 Tài Liệu Bổ Sung
 
-| File                                         | Mục Đích                                                    |
-| :------------------------------------------- | :---------------------------------------------------------- |
-| **[AUTH_API_GUIDE.md](./AUTH_API_GUIDE.md)** | Hướng dẫn chi tiết Auth Module (flows, endpoints, examples) |
-| **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)**   | Mô tả sản phẩm & business requirements                      |
-| **[README.md](../README.md)**                | Project overview                                            |
+| File                                                   | Mục Đích                                                                     |
+| :----------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **[AUTH_API_GUIDE.md](./AUTH_API_GUIDE.md)**           | Hướng dẫn chi tiết Auth Module (flows, endpoints, examples)                  |
+| **[CUSTOMERS_API_GUIDE.md](./CUSTOMERS_API_GUIDE.md)** | Hướng dẫn chi tiết Customers Module (data model, endpoints, flows, examples) |
+| **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)**             | Mô tả sản phẩm & business requirements                                       |
+| **[README.md](../README.md)**                          | Project overview                                                             |
 
 ---
 

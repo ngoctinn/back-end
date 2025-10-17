@@ -294,35 +294,54 @@ POST /auth/confirm-password-reset
 
 Quản lý hồ sơ khách hàng CRM.
 
+**📖 [→ Xem hướng dẫn chi tiết](./CUSTOMERS_API_GUIDE.md)**
+
+Tài liệu chi tiết bao gồm:
+
+- ✅ Data model đầy đủ
+- ✅ Tất cả API endpoints với ví dụ
+- ✅ 5 luồng nghiệp vụ chính (Walk-in, Online, Linking, Delete, Restore)
+- ✅ Xử lý lỗi và error codes
+- ✅ Code examples (Python, cURL)
+- ✅ Best practices
+
 ### 📊 Database Model: `Customer`
 
-| Cột               | Loại     | Mô Tả                     |
-| :---------------- | :------- | :------------------------ |
-| id                | Integer  | PK                        |
-| user_id           | Integer  | FK (NULL nếu walk-in)     |
-| full_name         | String   | Họ tên khách hàng         |
-| phone_number      | String   | Số điện thoại (UK)        |
-| email             | String   | Email                     |
-| date_of_birth     | Date     | Ngày sinh                 |
-| gender            | String   | Giới tính (M/F/Other)     |
-| address           | String   | Địa chỉ                   |
-| skin_type         | String   | Loại da (Normal/Dry/Oily) |
-| health_conditions | Text     | Tình trạng sức khỏe       |
-| notes             | Text     | Ghi chú CSKH              |
-| is_active         | Boolean  | Hoạt động                 |
-| created_at        | DateTime | Thời gian tạo             |
-| updated_at        | DateTime | Thời gian cập nhật        |
+| Cột               | Loại     | Mô Tả                    |
+| :---------------- | :------- | :----------------------- |
+| id                | Integer  | PK                       |
+| user_id           | Integer  | FK (NULL nếu walk-in)    |
+| full_name         | String   | Họ tên khách hàng        |
+| phone_number      | String   | Số điện thoại (UK)       |
+| date_of_birth     | Date     | Ngày sinh                |
+| gender            | String   | Giới tính (nam/nữ/khác)  |
+| address           | String   | Địa chỉ                  |
+| skin_type         | String   | Loại da (khô/dầu/...)    |
+| health_conditions | Text     | Tình trạng sức khỏe      |
+| notes             | Text     | Ghi chú CSKH             |
+| is_active         | Boolean  | Hoạt động                |
+| created_at        | DateTime | Thời gian tạo (UTC)      |
+| updated_at        | DateTime | Thời gian cập nhật (UTC) |
+| deleted_at        | DateTime | Soft delete marker       |
 
 ### 📝 API Endpoints
 
-| Method | Endpoint            | Mô Tả                  |
-| :----- | :------------------ | :--------------------- |
-| POST   | `/customers`        | Tạo khách hàng mới     |
-| GET    | `/customers/{id}`   | Lấy chi tiết           |
-| GET    | `/customers`        | Danh sách (phân trang) |
-| PUT    | `/customers/{id}`   | Cập nhật               |
-| DELETE | `/customers/{id}`   | Xóa (soft delete)      |
-| GET    | `/customers/search` | Tìm kiếm               |
+| Method | Endpoint             | Mô Tả                           |
+| :----- | :------------------- | :------------------------------ |
+| POST   | `/customers/walk-in` | Tạo khách hàng vãng lai         |
+| POST   | `/customers/profile` | Hoàn thành hồ sơ (có tài khoản) |
+| GET    | `/customers/{id}`    | Lấy chi tiết khách hàng         |
+| PUT    | `/customers/{id}`    | Cập nhật thông tin              |
+| DELETE | `/customers/{id}`    | Xóa mềm (soft delete)           |
+
+### 🔄 Luồng Nghiệp Vụ
+
+1. **Luồng 1:** Khách vãng lai → `POST /customers/walk-in`
+2. **Luồng 2a:** Khách vãng lai → Đăng ký tài khoản
+3. **Luồng 2b:** Hoàn thành hồ sơ → `POST /customers/profile`
+4. **Luồng 3:** Liên kết khách hàng cũ với tài khoản mới (OTP verification)
+5. **Luồng 4:** Xóa khách hàng → `DELETE /customers/{id}`
+6. **Luồng 5:** Khôi phục khách hàng (admin)
 
 ---
 
