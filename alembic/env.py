@@ -30,6 +30,7 @@ from src.modules.auth.models import (
 )
 from src.modules.customers.models import Customer
 from src.modules.media.models import MediaFile
+from src.modules.catalog import models
 
 # Đặt target_metadata từ ứng dụng FastAPI (dùng để autogenerate)
 target_metadata = SQLModel.metadata
@@ -65,7 +66,7 @@ def run_migrations_online() -> None:
     # Lấy cấu hình SQLAlchemy từ tệp ini
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = settings.DATABASE_URL
-    
+
     # Tạo connectable từ cấu hình
     connectable = engine_from_config(
         configuration,

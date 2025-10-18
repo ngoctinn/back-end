@@ -1,0 +1,188 @@
+"""CRUD operations cho module services (catalog)."""
+
+from typing import List, Optional, Type
+
+from sqlmodel import Session, select, func
+
+from . import models, schemas
+
+# --- ProductCategory CRUD ---
+
+def create_product_category(
+    db: Session, *, category_in: schemas.ProductCategoryCreate
+) -> models.ProductCategory:
+    """Tạo mới danh mục sản phẩm."""
+    db_category = models.ProductCategory.model_validate(category_in)
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def get_product_category(db: Session, category_id: int) -> Optional[models.ProductCategory]:
+    """Lấy danh mục sản phẩm theo ID."""
+    return db.get(models.ProductCategory, category_id)
+
+def get_all_product_categories(
+    db: Session, *, skip: int = 0, limit: int = 100
+) -> List[models.ProductCategory]:
+    """Lấy tất cả danh mục sản phẩm."""
+    statement = select(models.ProductCategory).offset(skip).limit(limit)
+    return db.exec(statement).all()
+
+def update_product_category(
+    db: Session, *, db_category: models.ProductCategory, category_in: schemas.ProductCategoryUpdate
+) -> models.ProductCategory:
+    """Cập nhật danh mục sản phẩm."""
+    update_data = category_in.model_dump(exclude_unset=True)
+    db_category.sqlmodel_update(update_data)
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def delete_product_category(db: Session, *, category_id: int) -> None:
+    """Xóa danh mục sản phẩm."""
+    category = db.get(models.ProductCategory, category_id)
+    if category:
+        db.delete(category)
+        db.commit()
+
+# --- Product CRUD ---
+
+def create_product(db: Session, *, product_in: schemas.ProductCreate) -> models.Product:
+    """Tạo mới sản phẩm."""
+    db_product = models.Product.model_validate(product_in)
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+def get_product(db: Session, product_id: int) -> Optional[models.Product]:
+    """Lấy sản phẩm theo ID."""
+    return db.get(models.Product, product_id)
+
+def get_all_products(
+    db: Session, *, skip: int = 0, limit: int = 100
+) -> List[models.Product]:
+    """Lấy tất cả sản phẩm."""
+    statement = select(models.Product).offset(skip).limit(limit)
+    return db.exec(statement).all()
+
+def update_product(
+    db: Session, *, db_product: models.Product, product_in: schemas.ProductUpdate
+) -> models.Product:
+    """Cập nhật sản phẩm."""
+    update_data = product_in.model_dump(exclude_unset=True)
+    db_product.sqlmodel_update(update_data)
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+def delete_product(db: Session, *, product_id: int) -> None:
+    """Xóa sản phẩm."""
+    product = db.get(models.Product, product_id)
+    if product:
+        db.delete(product)
+        db.commit()
+
+def set_primary_image_for_product(
+    db: Session, *, product: models.Product, media_id: int
+) -> models.Product:
+    """Thiết lập ảnh chính cho sản phẩm."""
+    product.primary_image_id = media_id
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+# --- ServiceCategory CRUD ---
+
+def create_service_category(
+    db: Session, *, category_in: schemas.ServiceCategoryCreate
+) -> models.ServiceCategory:
+    """Tạo mới danh mục dịch vụ."""
+    db_category = models.ServiceCategory.model_validate(category_in)
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def get_service_category(db: Session, category_id: int) -> Optional[models.ServiceCategory]:
+    """Lấy danh mục dịch vụ theo ID."""
+    return db.get(models.ServiceCategory, category_id)
+
+def get_all_service_categories(
+    db: Session, *, skip: int = 0, limit: int = 100
+) -> List[models.ServiceCategory]:
+    """Lấy tất cả danh mục dịch vụ."""
+    statement = select(models.ServiceCategory).offset(skip).limit(limit)
+    return db.exec(statement).all()
+
+def update_service_category(
+    db: Session, *, db_category: models.ServiceCategory, category_in: schemas.ServiceCategoryUpdate
+) -> models.ServiceCategory:
+    """Cập nhật danh mục dịch vụ."""
+    update_data = category_in.model_dump(exclude_unset=True)
+    db_category.sqlmodel_update(update_data)
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def delete_service_category(db: Session, *, category_id: int) -> None:
+    """Xóa danh mục dịch vụ."""
+    category = db.get(models.ServiceCategory, category_id)
+    if category:
+        db.delete(category)
+        db.commit()
+
+# --- Service CRUD ---
+
+def create_service(db: Session, *, service_in: schemas.ServiceCreate) -> models.Service:
+    """Tạo mới dịch vụ."""
+    db_service = models.Service.model_validate(service_in)
+    db.add(db_service)
+    db.commit()
+    db.refresh(db_service)
+    return db_service
+
+def get_service(db: Session, service_id: int) -> Optional[models.Service]:
+    """Lấy dịch vụ theo ID."""
+    return db.get(models.Service, service_id)
+
+def get_all_services(
+    db: Session, *, skip: int = 0, limit: int = 100
+) -> List[models.Service]:
+    """Lấy tất cả dịch vụ."""
+    statement = select(models.Service).offset(skip).limit(limit)
+    return db.exec(statement).all()
+
+def update_service(
+    db: Session, *, db_service: models.Service, service_in: schemas.ServiceUpdate
+) -> models.Service:
+    """Cập nhật dịch vụ."""
+    update_data = service_in.model_dump(exclude_unset=True)
+    db_service.sqlmodel_update(update_data)
+    db.add(db_service)
+    db.commit()
+    db.refresh(db_service)
+    return db_service
+
+def delete_service(db: Session, *, service_id: int) -> None:
+    """Xóa dịch vụ."""
+    service = db.get(models.Service, service_id)
+    if service:
+        db.delete(service)
+        db.commit()
+
+def set_primary_image_for_service(
+    db: Session, *, service: models.Service, media_id: int
+) -> models.Service:
+    """Thiết lập ảnh chính cho dịch vụ."""
+    service.primary_image_id = media_id
+    db.add(service)
+    db.commit()
+    db.refresh(service)
+    return service
