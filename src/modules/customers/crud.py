@@ -55,7 +55,7 @@ def get_customer_by_id(
     statement = select(Customer).where(Customer.id == customer_id)
     if not include_deleted:
         statement = statement.where(Customer.deleted_at.is_(None))
-    return db.exec(statement).scalars().first()
+    return db.exec(statement).first()
 
 
 def get_customer_by_user_id(
@@ -67,7 +67,7 @@ def get_customer_by_user_id(
     statement = select(Customer).where(Customer.user_id == user_id)
     if not include_deleted:
         statement = statement.where(Customer.deleted_at.is_(None))
-    return db.exec(statement).scalars().first()
+    return db.exec(statement).first()
 
 
 def get_customer_by_phone_number(
@@ -79,7 +79,7 @@ def get_customer_by_phone_number(
     statement = select(Customer).where(Customer.phone_number == phone_number)
     if not include_deleted:
         statement = statement.where(Customer.deleted_at.is_(None))
-    return db.exec(statement).scalars().first()
+    return db.exec(statement).first()
 
 
 def get_customer_by_phone_and_no_user(
@@ -92,7 +92,7 @@ def get_customer_by_phone_and_no_user(
         Customer.user_id.is_(None),
         Customer.deleted_at.is_(None),
     )
-    return db.exec(statement).scalars().first()
+    return db.exec(statement).first()
 
 
 def update_customer(

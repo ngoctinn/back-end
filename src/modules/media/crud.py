@@ -63,7 +63,7 @@ def get_media_by_id(media_id: int, session: Session) -> Optional[MediaFile]:
         MediaFile: Thông tin ảnh hoặc None nếu không tìm thấy
     """
     statement = select(MediaFile).where(MediaFile.id == media_id)
-    return session.exec(statement).scalars().first()
+    return session.exec(statement).first()
 
 
 def get_media_list_by_entity(

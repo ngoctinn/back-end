@@ -3,8 +3,7 @@
 from typing import Optional
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, update, delete
-from sqlmodel import Session
+from sqlmodel import Session, select, update, delete
 
 from src.core.utils import get_utc_now
 from .models import (
@@ -19,7 +18,7 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """Lấy người dùng theo email."""
 
     stmt = select(User).where(User.email == email)
-    return db.exec(stmt).scalars().first()
+    return db.exec(stmt).first()
 
 
 def create_user(
@@ -58,7 +57,7 @@ def is_refresh_token_valid(db: Session, token: str) -> Optional[RefreshToken]:
     stmt = select(RefreshToken).where(
         (RefreshToken.token == token) & (RefreshToken.is_revoked.is_(False))
     )
-    return db.exec(stmt).scalars().first()
+    return db.exec(stmt).first()
 
 
 def revoke_refresh_token(db: Session, token: str) -> None:
@@ -99,7 +98,7 @@ def get_verification_token(db: Session, token: str) -> Optional[VerificationToke
     """Lấy token xác minh từ DB."""
 
     stmt = select(VerificationToken).where(VerificationToken.token == token)
-    return db.exec(stmt).scalars().first()
+    return db.exec(stmt).first()
 
 
 def delete_verification_token(db: Session, token: str) -> None:
@@ -126,7 +125,7 @@ def get_reset_token(db: Session, token: str) -> Optional[ResetPasswordToken]:
     """Lấy token đặt lại mật khẩu từ DB."""
 
     stmt = select(ResetPasswordToken).where(ResetPasswordToken.token == token)
-    return db.exec(stmt).scalars().first()
+    return db.exec(stmt).first()
 
 
 def delete_reset_token(db: Session, token: str) -> None:
