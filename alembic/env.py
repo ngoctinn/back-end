@@ -28,6 +28,8 @@ from src.modules.auth.models import (
     VerificationToken,
     ResetPasswordToken,
 )
+from src.modules.customers.models import Customer
+from src.modules.media.models import MediaFile
 
 # Đặt target_metadata từ ứng dụng FastAPI (dùng để autogenerate)
 target_metadata = SQLModel.metadata

@@ -18,6 +18,7 @@ from src.core.utils import get_expiry_time
 from . import crud
 from .models import User
 from .token_service import create_verification_token_value
+from src.modules.customers import service as customer_service
 
 
 def create_access_token_for_user(user: User) -> str:
@@ -68,6 +69,15 @@ def register_user(db: Session, email: str, password: str) -> dict:
     # Hash password và tạo user
     pwd_hash = hash_password(password)
     user = crud.create_user(db, email=email, password_hash=pwd_hash, roles="user")
+
+    # Tự động tạo hồ sơ khách hàng "chờ" tương ứng
+    try:
+        customer_service.create_online_customer_with_user(db, user_id=user.id)
+    except Exception as e:
+        # Trong môi trường production, nên có cơ chế xử lý lỗi này tốt hơn
+        # ví dụ: rollback user đã tạo hoặc thêm vào hàng đợi để thử lại.
+        # Ở đây, chúng ta tạm thời bỏ qua lỗi để không làm gián đoạn luồng đăng ký.
+        print(f"Lỗi khi tạo stub customer: {e}")
 
     # Tạo token xác minh email với hạn hết
     vtoken = create_verification_token_value()

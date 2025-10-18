@@ -194,6 +194,20 @@ def logout(
     return schemas.MessageResponse(message="Đã đăng xuất")
 
 
+@router.get("/me", response_model=schemas.UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    """Lấy thông tin của người dùng đang đăng nhập.
+
+    Yêu cầu JWT token hợp lệ.
+    """
+    return schemas.UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        roles=current_user.roles.split(","),
+        is_active=current_user.is_active,
+    )
+
+
 @router.post("/password-reset", response_model=schemas.MessageResponse)
 def password_reset(
     payload: schemas.PasswordResetRequest, db: Session = Depends(get_session)

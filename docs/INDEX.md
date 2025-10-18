@@ -28,6 +28,7 @@ Bao gồm:
 | :----------------------------------------------------- | :--------------------------------------------------------------------------- |
 | **[AUTH_API_GUIDE.md](./AUTH_API_GUIDE.md)**           | Hướng dẫn chi tiết Auth Module (flows, endpoints, examples)                  |
 | **[CUSTOMERS_API_GUIDE.md](./CUSTOMERS_API_GUIDE.md)** | Hướng dẫn chi tiết Customers Module (data model, endpoints, flows, examples) |
+| **[MEDIA_API_GUIDE.md](./MEDIA_API_GUIDE.md)**         | Hướng dẫn chi tiết Media Module (Supabase, endpoints, examples)              |
 | **[PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)**             | Mô tả sản phẩm & business requirements                                       |
 | **[README.md](../README.md)**                          | Project overview                                                             |
 

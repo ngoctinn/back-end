@@ -127,11 +127,10 @@ def get_public_url(file_path: str) -> str:
         client = get_storage_client()
 
         # Lấy URL công khai
-        response = client.storage.from_(settings.SUPABASE_BUCKET_NAME).get_public_url(
+        public_url = client.storage.from_(settings.SUPABASE_BUCKET_NAME).get_public_url(
             file_path
         )
 
-        public_url = response.public_url
         logger.info(f"✓ Lấy URL công khai: {public_url}")
         return public_url
 

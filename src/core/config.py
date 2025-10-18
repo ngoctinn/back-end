@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str
     SUPABASE_BUCKET_NAME: str
 
+    # Media settings
+    MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB
+    ALLOWED_IMAGE_TYPES: set[str] = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+        "image/bmp",
+    }
+
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
 

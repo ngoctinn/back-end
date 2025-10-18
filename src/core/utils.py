@@ -120,4 +120,7 @@ def is_token_expired(expires_at: datetime) -> bool:
     Returns:
             True nếu token đã hết hạn
     """
+    # Nếu expires_at là naive, giả định nó là UTC
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     return expires_at < get_utc_now()

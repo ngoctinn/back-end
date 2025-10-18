@@ -11,6 +11,7 @@ from typing import Optional
 from fastapi import HTTPException, UploadFile
 from sqlmodel import Session
 
+from src.core.config import settings
 from src.core.storage import (
     delete_file_from_storage,
     get_public_url,
@@ -27,17 +28,19 @@ from src.modules.media.schemas import MediaListResponse, MediaResponse
 
 logger = logging.getLogger(__name__)
 
-# Danh sách MIME type ảnh được phép
-ALLOWED_IMAGE_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-    "image/bmp",
-}
 
-# Kích thước file tối đa: 5MB
-MAX_FILE_SIZE = 5 * 1024 * 1024
+def map_media_model_to_response(media: MediaFile) -> MediaResponse:
+    """Chuyển đổi MediaFile model sang MediaResponse schema."""
+    return MediaResponse(
+        id=media.id,
+        file_path=media.file_path,
+        public_url=media.public_url,
+        file_type=media.file_type,
+        file_size=media.file_size,
+        related_entity_type=media.related_entity_type,
+        related_entity_id=media.related_entity_id,
+        created_at=media.created_at,
+    )
 
 
 def _validate_image_file(file: UploadFile) -> None:
@@ -50,10 +53,17 @@ def _validate_image_file(file: UploadFile) -> None:
         HTTPException: Nếu file không hợp lệ
     """
     # Kiểm tra MIME type
-    if file.content_type not in ALLOWED_IMAGE_TYPES:
+    if file.content_type not in settings.ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=400,
-            detail=f"Loại file không được phép. Chỉ hỗ trợ: {', '.join(ALLOWED_IMAGE_TYPES)}",
+            detail=f"Loại file không được phép. Chỉ hỗ trợ: {', '.join(settings.ALLOWED_IMAGE_TYPES)}",
+        )
+
+    # Kiểm tra kích thước file
+    if file.size and file.size > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,  # Payload Too Large
+            detail=f"Kích thước file quá lớn. Tối đa: {settings.MAX_FILE_SIZE // 1024 // 1024}MB",
         )
 
 
@@ -107,18 +117,12 @@ async def upload_avatar_for_customer(
         session=session,
     )
 
+    session.commit()
+    session.refresh(media)
+
     logger.info(f"✓ Tải ảnh đại diện cho khách hàng {customer_id} thành công")
 
-    return MediaResponse(
-        id=media.id,
-        file_path=media.file_path,
-        public_url=media.public_url,
-        file_type=media.file_type,
-        file_size=media.file_size,
-        related_entity_type=media.related_entity_type,
-        related_entity_id=media.related_entity_id,
-        created_at=media.created_at,
-    )
+    return map_media_model_to_response(media)
 
 
 async def upload_image_for_service(
@@ -137,6 +141,15 @@ async def upload_image_for_service(
     Raises:
         HTTPException: Nếu dịch vụ không tìm thấy hoặc file không hợp lệ
     """
+    # from src.modules.services.models import Service  # Giả định model Service tồn tại
+
+    # # Kiểm tra dịch vụ tồn tại
+    # service = session.get(Service, service_id)
+    # if not service:
+    #     raise HTTPException(
+    #         status_code=404, detail=f"Dịch vụ ID {service_id} không tìm thấy"
+    #     )
+
     # Kiểm tra file hợp lệ
     _validate_image_file(file)
 
@@ -162,18 +175,12 @@ async def upload_image_for_service(
         session=session,
     )
 
+    session.commit()
+    session.refresh(media)
+
     logger.info(f"✓ Tải ảnh cho dịch vụ {service_id} thành công")
 
-    return MediaResponse(
-        id=media.id,
-        file_path=media.file_path,
-        public_url=media.public_url,
-        file_type=media.file_type,
-        file_size=media.file_size,
-        related_entity_type=media.related_entity_type,
-        related_entity_id=media.related_entity_id,
-        created_at=media.created_at,
-    )
+    return map_media_model_to_response(media)
 
 
 async def delete_media_file(media_id: int, session: Session) -> dict:
@@ -204,6 +211,8 @@ async def delete_media_file(media_id: int, session: Session) -> dict:
 
         # Xóa record từ DB
         delete_media_record(media_id, session)
+
+        session.commit()
 
         logger.info(f"✓ Xóa ảnh ID {media_id} thành công")
 
@@ -243,18 +252,7 @@ async def get_media_for_entity(
     media_list = get_media_list_by_entity(entity_type, entity_id, session)
 
     # Map thành MediaResponse
-    responses = [
-        MediaResponse(
-            id=media.id,
-            file_path=media.file_path,
-            public_url=media.public_url,
-            file_type=media.file_type,
-            file_size=media.file_size,
-            related_entity_type=media.related_entity_type,
-            related_entity_id=media.related_entity_id,
-            created_at=media.created_at,
-        )
-        for media in media_list
-    ]
+    responses = [map_media_model_to_response(media) for media in media_list]
 
     return MediaListResponse(media_list=responses)
+
