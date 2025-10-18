@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.config import settings
 from src.core.email import send_verification_email

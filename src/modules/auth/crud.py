@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 
 from sqlalchemy import select, update, delete
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.utils import get_utc_now
 from .models import (
@@ -19,7 +19,7 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """Lấy người dùng theo email."""
 
     stmt = select(User).where(User.email == email)
-    return db.execute(stmt).scalars().first()
+    return db.exec(stmt).scalars().first()
 
 
 def create_user(
@@ -38,7 +38,7 @@ def update_user_active(db: Session, user_id: int, is_active: bool) -> None:
     """Cập nhật trạng thái hoạt động của người dùng."""
 
     stmt = update(User).where(User.id == user_id).values(is_active=is_active)
-    db.execute(stmt)
+    db.exec(stmt)
     db.commit()
 
 
@@ -58,7 +58,7 @@ def is_refresh_token_valid(db: Session, token: str) -> Optional[RefreshToken]:
     stmt = select(RefreshToken).where(
         (RefreshToken.token == token) & (RefreshToken.is_revoked.is_(False))
     )
-    return db.execute(stmt).scalars().first()
+    return db.exec(stmt).scalars().first()
 
 
 def revoke_refresh_token(db: Session, token: str) -> None:
@@ -67,7 +67,7 @@ def revoke_refresh_token(db: Session, token: str) -> None:
     stmt = (
         update(RefreshToken).where(RefreshToken.token == token).values(is_revoked=True)
     )
-    db.execute(stmt)
+    db.exec(stmt)
     db.commit()
 
 
@@ -79,7 +79,7 @@ def revoke_refresh_tokens_of_user(db: Session, user_id: int) -> None:
         .where(RefreshToken.user_id == user_id)
         .values(is_revoked=True)
     )
-    db.execute(stmt)
+    db.exec(stmt)
     db.commit()
 
 
@@ -99,14 +99,14 @@ def get_verification_token(db: Session, token: str) -> Optional[VerificationToke
     """Lấy token xác minh từ DB."""
 
     stmt = select(VerificationToken).where(VerificationToken.token == token)
-    return db.execute(stmt).scalars().first()
+    return db.exec(stmt).scalars().first()
 
 
 def delete_verification_token(db: Session, token: str) -> None:
     """Xóa token xác minh sau khi xác thực thành công."""
 
     stmt = delete(VerificationToken).where(VerificationToken.token == token)
-    db.execute(stmt)
+    db.exec(stmt)
     db.commit()
 
 
@@ -126,14 +126,14 @@ def get_reset_token(db: Session, token: str) -> Optional[ResetPasswordToken]:
     """Lấy token đặt lại mật khẩu từ DB."""
 
     stmt = select(ResetPasswordToken).where(ResetPasswordToken.token == token)
-    return db.execute(stmt).scalars().first()
+    return db.exec(stmt).scalars().first()
 
 
 def delete_reset_token(db: Session, token: str) -> None:
     """Xóa token đặt lại mật khẩu sau khi sử dụng thành công."""
 
     stmt = delete(ResetPasswordToken).where(ResetPasswordToken.token == token)
-    db.execute(stmt)
+    db.exec(stmt)
     db.commit()
 
 
@@ -147,11 +147,11 @@ def delete_expired_tokens(db: Session) -> int:
 
     # Xóa verification token hết hạn
     stmt_verify = delete(VerificationToken).where(VerificationToken.expires_at < now)
-    result_verify = db.execute(stmt_verify)
+    result_verify = db.exec(stmt_verify)
 
     # Xóa reset token hết hạn
     stmt_reset = delete(ResetPasswordToken).where(ResetPasswordToken.expires_at < now)
-    result_reset = db.execute(stmt_reset)
+    result_reset = db.exec(stmt_reset)
 
     db.commit()
 
@@ -172,6 +172,6 @@ def cleanup_old_refresh_tokens(db: Session, days: int = 7) -> int:
     stmt = delete(RefreshToken).where(
         (RefreshToken.is_revoked == True) & (RefreshToken.created_at < cutoff_date)
     )
-    result = db.execute(stmt)
+    result = db.exec(stmt)
     db.commit()
     return result.rowcount

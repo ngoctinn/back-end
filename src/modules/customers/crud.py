@@ -8,10 +8,9 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import func
+from sqlmodel import Session, select
 
 from src.core.utils import get_utc_now
-from sqlalchemy.orm import Session
-
 from src.modules.customers.models import Customer
 
 
@@ -28,24 +27,7 @@ def create_customer(
     health_conditions: Optional[str] = None,
     is_active: bool = True,
 ) -> Customer:
-    """Tạo mới khách hàng.
-
-    Args:
-            db: Database session
-            full_name: Họ tên khách hàng
-            phone_number: Số điện thoại
-            user_id: ID tài khoản (có thể NULL cho khách hàng vãng lai)
-            date_of_birth: Ngày sinh
-            gender: Giới tính
-            address: Địa chỉ
-            notes: Ghi chú
-            skin_type: Loại da
-            health_conditions: Tình trạng sức khỏe
-            is_active: Trạng thái hoạt động
-
-    Returns:
-            Customer object được tạo
-    """
+    """Tạo mới khách hàng."""
     customer = Customer(
         user_id=user_id,
         full_name=full_name,
@@ -69,20 +51,11 @@ def get_customer_by_id(
     customer_id: int,
     include_deleted: bool = False,
 ) -> Optional[Customer]:
-    """Lấy khách hàng theo ID.
-
-    Args:
-            db: Database session
-            customer_id: ID khách hàng
-            include_deleted: True để bao gồm khách hàng bị xóa mềm
-
-    Returns:
-            Customer object hoặc None nếu không tìm thấy
-    """
-    query = db.query(Customer).filter(Customer.id == customer_id)
+    """Lấy khách hàng theo ID."""
+    statement = select(Customer).where(Customer.id == customer_id)
     if not include_deleted:
-        query = query.filter(Customer.deleted_at.is_(None))
-    return query.first()
+        statement = statement.where(Customer.deleted_at.is_(None))
+    return db.exec(statement).scalars().first()
 
 
 def get_customer_by_user_id(
@@ -90,20 +63,11 @@ def get_customer_by_user_id(
     user_id: int,
     include_deleted: bool = False,
 ) -> Optional[Customer]:
-    """Lấy khách hàng theo user_id.
-
-    Args:
-            db: Database session
-            user_id: ID tài khoản
-            include_deleted: True để bao gồm khách hàng bị xóa mềm
-
-    Returns:
-            Customer object hoặc None nếu không tìm thấy
-    """
-    query = db.query(Customer).filter(Customer.user_id == user_id)
+    """Lấy khách hàng theo user_id."""
+    statement = select(Customer).where(Customer.user_id == user_id)
     if not include_deleted:
-        query = query.filter(Customer.deleted_at.is_(None))
-    return query.first()
+        statement = statement.where(Customer.deleted_at.is_(None))
+    return db.exec(statement).scalars().first()
 
 
 def get_customer_by_phone_number(
@@ -111,46 +75,24 @@ def get_customer_by_phone_number(
     phone_number: str,
     include_deleted: bool = False,
 ) -> Optional[Customer]:
-    """Lấy khách hàng theo số điện thoại.
-
-    Args:
-            db: Database session
-            phone_number: Số điện thoại (sau normalize)
-            include_deleted: True để bao gồm khách hàng bị xóa mềm
-
-    Returns:
-            Customer object hoặc None nếu không tìm thấy
-    """
-    query = db.query(Customer).filter(Customer.phone_number == phone_number)
+    """Lấy khách hàng theo số điện thoại."""
+    statement = select(Customer).where(Customer.phone_number == phone_number)
     if not include_deleted:
-        query = query.filter(Customer.deleted_at.is_(None))
-    return query.first()
+        statement = statement.where(Customer.deleted_at.is_(None))
+    return db.exec(statement).scalars().first()
 
 
 def get_customer_by_phone_and_no_user(
     db: Session,
     phone_number: str,
 ) -> Optional[Customer]:
-    """Lấy khách hàng theo SĐT với điều kiện chưa có tài khoản.
-
-    Dùng khi tìm hồ sơ khách hàng cũ để liên kết tài khoản.
-
-    Args:
-            db: Database session
-            phone_number: Số điện thoại (sau normalize)
-
-    Returns:
-            Customer object hoặc None nếu không tìm thấy
-    """
-    return (
-        db.query(Customer)
-        .filter(
-            Customer.phone_number == phone_number,
-            Customer.user_id.is_(None),
-            Customer.deleted_at.is_(None),
-        )
-        .first()
+    """Lấy khách hàng theo SĐT với điều kiện chưa có tài khoản."""
+    statement = select(Customer).where(
+        Customer.phone_number == phone_number,
+        Customer.user_id.is_(None),
+        Customer.deleted_at.is_(None),
     )
+    return db.exec(statement).scalars().first()
 
 
 def update_customer(
@@ -158,16 +100,7 @@ def update_customer(
     customer_id: int,
     update_data: dict,
 ) -> Optional[Customer]:
-    """Cập nhật thông tin khách hàng.
-
-    Args:
-            db: Database session
-            customer_id: ID khách hàng
-            update_data: Dictionary chứa các fields cần cập nhật
-
-    Returns:
-            Customer object được cập nhật hoặc None nếu không tìm thấy
-    """
+    """Cập nhật thông tin khách hàng."""
     customer = get_customer_by_id(db, customer_id, include_deleted=False)
     if not customer:
         return None
@@ -185,15 +118,7 @@ def update_customer(
 
 
 def soft_delete_customer(db: Session, customer_id: int) -> bool:
-    """Xóa mềm khách hàng (đặt deleted_at).
-
-    Args:
-            db: Database session
-            customer_id: ID khách hàng
-
-    Returns:
-            True nếu xóa thành công, False nếu khách hàng không tồn tại
-    """
+    """Xóa mềm khách hàng (đặt deleted_at)."""
     customer = get_customer_by_id(db, customer_id, include_deleted=False)
     if not customer:
         return False
@@ -205,15 +130,7 @@ def soft_delete_customer(db: Session, customer_id: int) -> bool:
 
 
 def restore_customer(db: Session, customer_id: int) -> bool:
-    """Khôi phục khách hàng (xóa deleted_at).
-
-    Args:
-            db: Database session
-            customer_id: ID khách hàng
-
-    Returns:
-            True nếu khôi phục thành công, False nếu khách hàng không bị xóa
-    """
+    """Khôi phục khách hàng (xóa deleted_at)."""
     customer = get_customer_by_id(db, customer_id, include_deleted=True)
     if not customer or customer.deleted_at is None:
         return False
@@ -230,32 +147,26 @@ def find_customer_by_query(
     page: int = 1,
     per_page: int = 20,
 ) -> tuple[list[Customer], int]:
-    """Tìm kiếm khách hàng theo tên hoặc SĐT (không bao gồm khách hàng bị xóa).
-
-    Args:
-            db: Database session
-            search_query: Chuỗi tìm kiếm (tên hoặc SĐT)
-            page: Trang (1-based)
-            per_page: Số item trên mỗi trang
-
-    Returns:
-            Tuple (danh sách Customer, tổng số)
-    """
-    query = db.query(Customer).filter(Customer.deleted_at.is_(None))
+    """Tìm kiếm khách hàng theo tên hoặc SĐT (không bao gồm khách hàng bị xóa)."""
+    # Câu lệnh để lấy dữ liệu
+    statement = select(Customer).where(Customer.deleted_at.is_(None))
+    # Câu lệnh để đếm
+    count_statement = (
+        select(func.count()).select_from(Customer).where(Customer.deleted_at.is_(None))
+    )
 
     if search_query:
-        # Tìm kiếm theo tên hoặc SĐT
         search_term = f"%{search_query}%"
-        query = query.filter(
-            (Customer.full_name.ilike(search_term))
-            | (Customer.phone_number.ilike(search_term))
+        search_filter = (Customer.full_name.ilike(search_term)) | (
+            Customer.phone_number.ilike(search_term)
         )
+        statement = statement.where(search_filter)
+        count_statement = count_statement.where(search_filter)
 
-    total = query.count()
+    total = db.exec(count_statement).one()
 
-    # Pagination
     offset = (page - 1) * per_page
-    customers = query.offset(offset).limit(per_page).all()
+    customers = db.exec(statement.offset(offset).limit(per_page)).all()
 
     return customers, total
 
@@ -265,16 +176,7 @@ def link_customer_with_user(
     customer_id: int,
     user_id: int,
 ) -> Optional[Customer]:
-    """Liên kết khách hàng với tài khoản user.
-
-    Args:
-            db: Database session
-            customer_id: ID khách hàng
-            user_id: ID tài khoản
-
-    Returns:
-            Customer object sau khi liên kết hoặc None nếu không tìm thấy
-    """
+    """Liên kết khách hàng với tài khoản user."""
     customer = get_customer_by_id(db, customer_id, include_deleted=False)
     if not customer:
         return None
@@ -290,15 +192,7 @@ def unlink_customer_from_user(
     db: Session,
     customer_id: int,
 ) -> Optional[Customer]:
-    """Hủy liên kết khách hàng với tài khoản user.
-
-    Args:
-            db: Database session
-            customer_id: ID khách hàng
-
-    Returns:
-            Customer object sau khi hủy liên kết hoặc None nếu không tìm thấy
-    """
+    """Hủy liên kết khách hàng với tài khoản user."""
     customer = get_customer_by_id(db, customer_id, include_deleted=False)
     if not customer:
         return None

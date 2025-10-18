@@ -5,7 +5,7 @@ gia hạn, đăng xuất, yêu cầu reset và đặt lại mật khẩu.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Cookie
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.config import settings
 from src.core.db import get_session

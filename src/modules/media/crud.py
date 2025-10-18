@@ -63,7 +63,7 @@ def get_media_by_id(media_id: int, session: Session) -> Optional[MediaFile]:
         MediaFile: Thông tin ảnh hoặc None nếu không tìm thấy
     """
     statement = select(MediaFile).where(MediaFile.id == media_id)
-    return session.execute(statement).scalars().first()
+    return session.exec(statement).scalars().first()
 
 
 def get_media_list_by_entity(
@@ -87,7 +87,7 @@ def get_media_list_by_entity(
         )
         .order_by(MediaFile.created_at.desc())
     )
-    return session.execute(statement).scalars().all()
+    return session.exec(statement).all()
 
 
 def delete_media_record(media_id: int, session: Session) -> bool:
@@ -104,7 +104,7 @@ def delete_media_record(media_id: int, session: Session) -> bool:
 
     if media:
         session.delete(media)
-        session.flush() # Đảm bảo thay đổi được đưa vào DB trước khi service commit
+        session.flush()  # Đảm bảo thay đổi được đưa vào DB trước khi service commit
         return True
 
     return False

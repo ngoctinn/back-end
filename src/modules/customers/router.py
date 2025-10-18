@@ -4,7 +4,7 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.db import get_session
 from src.core.dependencies import get_current_user

@@ -7,27 +7,25 @@ Không chứa logic nghiệp vụ.
 
 import os
 from sqlmodel import SQLModel, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel, create_engine, Session
 from src.core.config import settings
 
 # Đọc DATABASE_URL từ biến môi trường. Nếu không có, dùng SQLite file dev.
 DATABASE_URL = settings.DATABASE_URL
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 
-# Session factory (sử dụng SQLAlchemy 2-style)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 # Metadata dùng bởi Alembic autogenerate
 metadata = SQLModel.metadata
 
 
 def get_session():
-    """Yield một session DB. Dùng như dependency của FastAPI.
+    """Cung cấp một SQLModel session cho dependency injection.
 
-    Đây là helper nhỏ phục vụ khi bắt đầu cài đặt; không chứa logic nghiệp vụ.
+    Sử dụng context manager của SQLModel để đảm bảo session được đóng đúng cách.
     """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    with Session(engine) as session:
+        try:
+            yield session
+        finally:
+            session.close()

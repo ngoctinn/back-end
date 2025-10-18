@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.config import settings
 from src.core.email import send_verification_email, send_password_reset_email
@@ -47,7 +47,7 @@ def initiate_email_verification(db: Session, user_id: int) -> bool:
 
     # Xóa token cũ nếu tồn tại
     stmt = select(VerificationToken).where(VerificationToken.user_id == user_id)
-    old_token = db.execute(stmt).scalars().first()
+    old_token = db.exec(stmt).scalars().first()
     if old_token:
         crud.delete_verification_token(db, old_token.token)
 
@@ -122,7 +122,7 @@ def initiate_password_reset(db: Session, email: str) -> bool:
 
     # Xóa token cũ nếu tồn tại
     stmt = select(ResetPasswordToken).where(ResetPasswordToken.user_id == user.id)
-    old_token = db.execute(stmt).scalars().first()
+    old_token = db.exec(stmt).scalars().first()
     if old_token:
         crud.delete_reset_token(db, old_token.token)
 

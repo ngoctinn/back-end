@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.utils import get_utc_now
 

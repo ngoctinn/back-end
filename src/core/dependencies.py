@@ -12,7 +12,7 @@ from typing import Callable, Iterable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from src.core.db import get_session
 from src.core.security import decode_jwt_token
