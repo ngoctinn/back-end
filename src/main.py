@@ -34,4 +34,4 @@ def healthcheck():
 # Include routers
 app.include_router(auth_router)
 app.include_router(customers_router)
-app.include_router(media_router, prefix="/api/v1", tags=["media"])
+app.include_router(media_router)
