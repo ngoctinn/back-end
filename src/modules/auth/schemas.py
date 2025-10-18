@@ -17,6 +17,10 @@ class PermissionCreate(PermissionBase):
 class PermissionRead(PermissionBase):
     id: int
 
+class PermissionUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
 class RoleBase(BaseModel):
     name: str
     description: str = ""
