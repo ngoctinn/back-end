@@ -9,28 +9,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import settings
 from src.modules.auth.router import router as auth_router
 from src.modules.customers.router import router as customers_router
+from src.modules.media.router import router as media_router
 
 
 app = FastAPI(title="Spa Backend API")
 
 # Cấu hình CORS
 app.add_middleware(
-	CORSMiddleware,
-	allow_origins=settings.BACKEND_CORS_ORIGINS or ["*"],
-	allow_credentials=True,
-	allow_methods=["*"],
-	allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS or ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
 @app.get("/health")
 def healthcheck():
-	"""Endpoint kiểm tra tình trạng ứng dụng."""
+    """Endpoint kiểm tra tình trạng ứng dụng."""
 
-	return {"status": "ok"}
+    return {"status": "ok"}
 
 
 # Include routers
 app.include_router(auth_router)
 app.include_router(customers_router)
-
+app.include_router(media_router, prefix="/api/v1", tags=["media"])

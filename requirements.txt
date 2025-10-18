@@ -10,3 +10,5 @@ pydantic-settings
 bcrypt
 email-validator
 httpx
+supabase
+python-multipart
