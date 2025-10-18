@@ -6,16 +6,116 @@ gia hạn, đăng xuất, yêu cầu reset và đặt lại mật khẩu.
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Cookie
 from sqlmodel import Session
+from typing import List
 
 from src.core.config import settings
 from src.core.db import get_session
-from src.core.dependencies import get_current_user
+from src.core.dependencies import get_current_user, get_admin_user
 from . import schemas
 from . import auth_service, token_service, crud
-from .models import User
+from .models import User, Role, Permission
 
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+admin_router = APIRouter(
+    prefix="/admin", tags=["Admin - RBAC"], dependencies=[Depends(get_admin_user)]
+)
+
+
+# === RBAC Management Endpoints ===
+
+
+@admin_router.post("/roles", response_model=schemas.RoleRead, status_code=201)
+def create_role(role_in: schemas.RoleCreate, db: Session = Depends(get_session)):
+    return crud.create_role(db, role_in)
+
+
+@admin_router.get("/roles", response_model=List[schemas.RoleRead])
+def get_all_roles(db: Session = Depends(get_session)):
+    return crud.get_all_roles(db)
+
+
+@admin_router.post(
+    "/users/{user_id}/roles/{role_id}", response_model=schemas.UserResponse
+)
+def assign_role_to_user(user_id: int, role_id: int, db: Session = Depends(get_session)):
+    user = crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+    role = crud.get_role(db, role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Vai trò không tồn tại")
+    crud.assign_role_to_user(db, user, role)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@admin_router.delete(
+    "/users/{user_id}/roles/{role_id}", response_model=schemas.UserResponse
+)
+def revoke_role_from_user(
+    user_id: int, role_id: int, db: Session = Depends(get_session)
+):
+    user = crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+    role = crud.get_role(db, role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Vai trò không tồn tại")
+    crud.revoke_role_from_user(db, user, role)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+# (Các endpoint khác cho Permission và Role-Permission có thể thêm tương tự)
+
+
+# === Endpoints for Permissions ===
+
+@admin_router.post("/permissions", response_model=schemas.PermissionRead, status_code=201)
+def create_permission(perm_in: schemas.PermissionCreate, db: Session = Depends(get_session)):
+    """Tạo một quyền hạn mới."""
+    # Optional: Check for duplicate name
+    return crud.create_permission(db, perm_in)
+
+@admin_router.get("/permissions", response_model=List[schemas.PermissionRead])
+def get_all_permissions(db: Session = Depends(get_session)):
+    """Lấy danh sách tất cả quyền hạn."""
+    return crud.get_all_permissions(db)
+
+
+# === Endpoints for Role-Permission Assignments ===
+
+@admin_router.post("/roles/{role_id}/permissions/{permission_id}", response_model=schemas.RoleReadWithPermissions)
+def add_permission_to_role(role_id: int, permission_id: int, db: Session = Depends(get_session)):
+    """Gán một quyền cho một vai trò."""
+    role = crud.get_role(db, role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Vai trò không tồn tại")
+    permission = crud.get_permission(db, permission_id)
+    if not permission:
+        raise HTTPException(status_code=404, detail="Quyền hạn không tồn tại")
+    crud.add_permission_to_role(db, role, permission)
+    db.refresh(role)
+    return role
+
+@admin_router.delete("/roles/{role_id}/permissions/{permission_id}", response_model=schemas.RoleReadWithPermissions)
+def remove_permission_from_role(role_id: int, permission_id: int, db: Session = Depends(get_session)):
+    """Thu hồi một quyền từ một vai trò."""
+    role = crud.get_role(db, role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Vai trò không tồn tại")
+    permission = crud.get_permission(db, permission_id)
+    if not permission:
+        raise HTTPException(status_code=404, detail="Quyền hạn không tồn tại")
+    crud.remove_permission_from_role(db, role, permission)
+    db.refresh(role)
+    return role
+
+
+# === Standard Auth Endpoints ===
 
 
 @router.post(
@@ -203,7 +303,7 @@ def get_me(current_user: User = Depends(get_current_user)):
     return schemas.UserResponse(
         id=current_user.id,
         email=current_user.email,
-        roles=current_user.roles.split(","),
+        roles=current_user.roles,  # Trả về list object Role đã được eager load
         is_active=current_user.is_active,
     )
 

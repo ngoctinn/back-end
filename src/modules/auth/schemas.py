@@ -1,9 +1,41 @@
 """Định nghĩa schema (Pydantic) cho các luồng xác thực."""
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
+
+# --- RBAC Schemas ---
+
+class PermissionBase(BaseModel):
+    name: str
+    description: str = ""
+
+class PermissionCreate(PermissionBase):
+    pass
+
+class PermissionRead(PermissionBase):
+    id: int
+
+class RoleBase(BaseModel):
+    name: str
+    description: str = ""
+
+class RoleCreate(RoleBase):
+    pass
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+class RoleRead(RoleBase):
+    id: int
+
+class RoleReadWithPermissions(RoleRead):
+    permissions: List[PermissionRead] = []
+
+
+# --- Auth Schemas ---
 
 class RegisterRequest(BaseModel):
     """Yêu cầu đăng ký tài khoản mới."""
@@ -31,8 +63,11 @@ class UserResponse(BaseModel):
 
     id: int
     email: EmailStr
-    roles: list[str]
+    roles: List[RoleRead] # Cập nhật để trả về object Role chi tiết
     is_active: bool
+
+    class Config:
+        from_attributes = True
 
 
 class VerifyEmailRequest(BaseModel):

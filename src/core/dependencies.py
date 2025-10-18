@@ -50,15 +50,23 @@ def get_current_user(
 
 
 def require_roles(*required_roles: str) -> Callable[[User], User]:
-	"""Factory tạo dependency kiểm tra quyền truy cập theo roles.
+    """Factory tạo dependency kiểm tra quyền truy cập theo roles.
 
-	Sử dụng: Depends(require_roles("admin", "manager"))
-	"""
+    Sử dụng: Depends(require_roles("admin", "manager"))
+    """
 
-	def _checker(user: User = Depends(get_current_user)) -> User:
-		user_roles: set[str] = set([r.strip() for r in user.roles.split(",") if r.strip()])
-		if not user_roles.intersection(set(required_roles)):
-			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền truy cập")
-		return user
+    def _checker(user: User = Depends(get_current_user)) -> User:
+        # Lấy tên các role của user từ CSDL
+        user_roles: set[str] = {role.name for role in user.roles}
+        if not user_roles.intersection(set(required_roles)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Không đủ quyền truy cập"
+            )
+        return user
 
-	return _checker
+    return _checker
+
+
+def get_admin_user(user: User = Depends(require_roles("admin"))) -> User:
+    """Dependency tiện ích để yêu cầu quyền admin."""
+    return user

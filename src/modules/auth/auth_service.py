@@ -1,6 +1,6 @@
 """Business logic cho đăng ký, đăng nhập, đăng xuất và refresh token.
 
-Tách riêng logic xác thực để cải thiện maintainability.
+Đã được tái cấu trúc để hỗ trợ transaction và RBAC.
 """
 
 import secrets
@@ -22,71 +22,52 @@ from src.modules.customers import service as customer_service
 
 
 def create_access_token_for_user(user: User) -> str:
-    """Tạo access token JWT chứa user_id và roles."""
-
-    subject = {"sub": str(user.id), "roles": user.roles}
+    """Tạo access token JWT chứa user_id và danh sách roles."""
+    # Lấy danh sách tên các role từ object User
+    # Cần đảm bảo các role đã được eager load khi truy vấn user
+    roles_list = [role.name for role in user.roles]
+    subject = {"sub": str(user.id), "roles": roles_list}
     expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return create_jwt_token(subject, expires)
 
 
-def create_refresh_token_value() -> str:
-    """Tạo chuỗi refresh token ngẫu nhiên (opaque)."""
-
-    return secrets.token_urlsafe(48)
-
-
-def hash_password(plain_password: str) -> str:
-    """Wrapper: hash mật khẩu (ủy quyền cho core.security)."""
-
-    return _hash_password(plain_password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Wrapper: xác minh mật khẩu (ủy quyền cho core.security)."""
-
-    return _verify_password(plain_password, hashed_password)
-
-
 def register_user(db: Session, email: str, password: str) -> dict:
-    """Đăng ký tài khoản mới với email verification.
-
-    Args:
-            db: Session cơ sở dữ liệu
-            email: Email người dùng
-            password: Mật khẩu plain text
-
-    Returns:
-            Dict chứa thông tin người dùng và trạng thái
-
-    Raises:
-            ValueError: Nếu email đã tồn tại
-    """
+    """Đăng ký tài khoản mới với email verification trong một transaction."""
     # Kiểm tra email không trùng lặp
-    existing = crud.get_user_by_email(db, email)
-    if existing:
+    if crud.get_user_by_email(db, email):
         raise ValueError("Email đã tồn tại")
 
-    # Hash password và tạo user
-    pwd_hash = hash_password(password)
-    user = crud.create_user(db, email=email, password_hash=pwd_hash, roles="user")
-
-    # Tự động tạo hồ sơ khách hàng "chờ" tương ứng
     try:
+        # 1. Tạo User
+        pwd_hash = _hash_password(password)
+        user = crud.create_user(db, email=email, password_hash=pwd_hash)
+        db.flush() # Flush để user object có ID trước khi gán vào các object khác
+
+        # 2. Gán vai trò 'user' mặc định
+        user_role = crud.get_role_by_name(db, name="user")
+        if not user_role:
+            raise RuntimeError("Vai trò 'user' mặc định không tồn tại trong CSDL.")
+        crud.assign_role_to_user(db, user=user, role=user_role)
+
+        # 3. Tạo hồ sơ khách hàng "chờ"
         customer_service.create_online_customer_with_user(db, user_id=user.id)
+
+        # 4. Tạo token xác minh email
+        vtoken = create_verification_token_value()
+        expires_at = get_expiry_time(settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
+        crud.create_verification_token(
+            db, user_id=user.id, token=vtoken, expires_at=expires_at
+        )
+
+        # Commit tất cả thay đổi vào CSDL
+        db.commit()
+
     except Exception as e:
-        # Trong môi trường production, nên có cơ chế xử lý lỗi này tốt hơn
-        # ví dụ: rollback user đã tạo hoặc thêm vào hàng đợi để thử lại.
-        # Ở đây, chúng ta tạm thời bỏ qua lỗi để không làm gián đoạn luồng đăng ký.
-        print(f"Lỗi khi tạo stub customer: {e}")
+        # Nếu có bất kỳ lỗi nào, rollback tất cả thay đổi
+        db.rollback()
+        raise e
 
-    # Tạo token xác minh email với hạn hết
-    vtoken = create_verification_token_value()
-    expires_at = get_expiry_time(settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
-    crud.create_verification_token(
-        db, user_id=user.id, token=vtoken, expires_at=expires_at
-    )
-
-    # Gửi email xác minh
+    # 5. Gửi email xác minh (chỉ gửi sau khi đã commit thành công)
     send_verification_email(email, vtoken)
 
     return {
@@ -95,49 +76,26 @@ def register_user(db: Session, email: str, password: str) -> dict:
         "message": "Đăng ký thành công. Vui lòng xác minh email",
     }
 
-
 def login_user(db: Session, email: str, password: str) -> tuple[str, str, User]:
-    """Đăng nhập: trả về (access_token, refresh_token, user).
-
-    Args:
-            db: Session cơ sở dữ liệu
-            email: Email người dùng
-            password: Mật khẩu plain text
-
-    Returns:
-            Tuple chứa (access_token, refresh_token, user_object)
-
-    Raises:
-            ValueError: Nếu email/password không hợp lệ
-            PermissionError: Nếu tài khoản chưa được kích hoạt
-    """
+    """Đăng nhập: trả về (access_token, refresh_token, user)."""
     user = crud.get_user_by_email(db, email)
-    if not user or not verify_password(password, user.password_hash):
+    if not user or not _verify_password(password, user.password_hash):
         raise ValueError("Thông tin đăng nhập không hợp lệ")
     if not user.is_active:
         raise PermissionError("Tài khoản chưa được kích hoạt")
 
     access_token = create_access_token_for_user(user)
-    refresh_token = create_refresh_token_value()
+    refresh_token = secrets.token_urlsafe(48)
     crud.store_refresh_token(db, user_id=user.id, token=refresh_token)
     return access_token, refresh_token, user
 
 
 def refresh_access_token(db: Session, refresh_token: str) -> Optional[str]:
-    """Tạo access token mới từ refresh token hợp lệ.
-
-    Args:
-            db: Session cơ sở dữ liệu
-            refresh_token: Refresh token từ cookie
-
-    Returns:
-            Access token mới hoặc None nếu invalid
-    """
+    """Tạo access token mới từ refresh token hợp lệ."""
     rt = crud.is_refresh_token_valid(db, refresh_token)
     if not rt:
         return None
 
-    # Lấy lại user và cấp token
     user = db.get(User, rt.user_id)
     if not user or not user.is_active:
         return None
@@ -145,10 +103,5 @@ def refresh_access_token(db: Session, refresh_token: str) -> Optional[str]:
 
 
 def logout_user(db: Session, refresh_token: str) -> None:
-    """Đăng xuất: thu hồi refresh token cụ thể.
-
-    Args:
-            db: Session cơ sở dữ liệu
-            refresh_token: Refresh token cần thu hồi
-    """
+    """Đăng xuất: thu hồi refresh token cụ thể."""
     crud.revoke_refresh_token(db, refresh_token)
