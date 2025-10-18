@@ -3,12 +3,13 @@
 Định nghĩa các endpoint để tải lên, xóa và truy vấn ảnh.
 """
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from sqlmodel import Session
 
 from src.core.db import get_session
 from src.core.dependencies import get_current_user
 from src.modules.auth.models import User
+from src.modules.customers import crud as customer_crud # Thêm import
 from src.modules.media.schemas import (
     DeleteMessageResponse,
     MediaListResponse,
@@ -22,6 +23,30 @@ from src.modules.media.service import (
 )
 
 router = APIRouter(prefix="/media", tags=["media"])
+
+
+@router.post(
+    "/customers/me/avatar",
+    response_model=MediaResponse,
+    status_code=200,
+    summary="Tự tải lên ảnh đại diện của tôi",
+)
+async def upload_my_customer_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> MediaResponse:
+    """Người dùng đã đăng nhập tự tải lên ảnh đại diện của chính mình."""
+    # Tìm hồ sơ khách hàng từ user đang đăng nhập
+    customer = customer_crud.get_customer_by_user_id(db=session, user_id=current_user.id)
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Hồ sơ khách hàng của bạn không tồn tại."
+        )
+    
+    # Tái sử dụng service đã có để tải ảnh lên
+    return await upload_avatar_for_customer(customer.id, file, session)
 
 
 @router.post(
