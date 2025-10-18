@@ -394,3 +394,93 @@ def get_consumptions_for_service(
                 product=product
             ))
     return consumptions
+
+
+# === Endpoints for PackageCategory ===
+
+@router.post(
+    "/package-categories/",
+    response_model=schemas.PackageCategoryRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo mới Danh mục Gói liệu trình"
+)
+def create_package_category(
+    *, session: Session = Depends(get_session), category_in: schemas.PackageCategoryCreate
+):
+    return crud.create_package_category(db=session, category_in=category_in)
+
+# === Endpoints for ServicePackage ===
+
+@router.post(
+    "/service-packages/",
+    response_model=schemas.ServicePackageRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo mới Gói liệu trình"
+)
+def create_service_package(
+    *, session: Session = Depends(get_session), package_in: schemas.ServicePackageCreate
+):
+    # Xác thực category
+    if package_in.category_id:
+        category = crud.get_package_category(db=session, category_id=package_in.category_id)
+        if not category:
+            raise HTTPException(status_code=404, detail=f"Danh mục gói ID {package_in.category_id} không tồn tại")
+    try:
+        return crud.create_service_package(db=session, package_in=package_in)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get(
+    "/service-packages/{package_id}",
+    response_model=schemas.ServicePackageRead,
+    summary="Lấy thông tin một Gói liệu trình"
+)
+def read_service_package(*, session: Session = Depends(get_session), package_id: int):
+    db_package = crud.get_service_package(db=session, package_id=package_id)
+    if not db_package:
+        raise HTTPException(status_code=404, detail="Gói liệu trình không tồn tại")
+    return db_package
+
+@router.put(
+    "/service-packages/{package_id}",
+    response_model=schemas.ServicePackageRead,
+    summary="Cập nhật Gói liệu trình"
+)
+def update_service_package(
+    *, session: Session = Depends(get_session), package_id: int, package_in: schemas.ServicePackageUpdate
+):
+    db_package = crud.get_service_package(db=session, package_id=package_id)
+    if not db_package:
+        raise HTTPException(status_code=404, detail="Gói liệu trình không tồn tại")
+    
+    # Xác thực category nếu có
+    if package_in.category_id:
+        category = crud.get_package_category(db=session, category_id=package_in.category_id)
+        if not category:
+            raise HTTPException(status_code=404, detail=f"Danh mục gói ID {package_in.category_id} không tồn tại")
+
+    try:
+        return crud.update_service_package(db=session, db_package=db_package, package_in=package_in)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post(
+    "/service-packages/{package_id}/set-primary-image/{media_id}",
+    response_model=schemas.ServicePackageRead,
+    summary="Thiết lập ảnh đại diện cho gói liệu trình"
+)
+def set_primary_image_for_service_package(
+    *, session: Session = Depends(get_session), package_id: int, media_id: int
+):
+    db_package = crud.get_service_package(db=session, package_id=package_id)
+    if not db_package:
+        raise HTTPException(status_code=404, detail="Gói liệu trình không tồn tại")
+    
+    media_file = session.get(MediaFile, media_id)
+    if not media_file:
+        raise HTTPException(status_code=404, detail="Ảnh không tồn tại")
+
+    if not (media_file.related_entity_type == 'service_package' and media_file.related_entity_id == package_id):
+        raise HTTPException(status_code=400, detail="Ảnh không thuộc về gói liệu trình này")
+
+    return crud.set_primary_image_for_service_package(db=session, package=db_package, media_id=media_id)

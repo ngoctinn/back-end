@@ -232,3 +232,72 @@ def get_consumptions_for_service(
     """Lấy danh sách tất cả vật tư tiêu hao của một dịch vụ."""
     statement = select(models.ServiceProductConsumption).where(models.ServiceProductConsumption.service_id == service_id)
     return db.exec(statement).all()
+
+
+# --- PackageCategory CRUD ---
+
+def create_package_category(
+    db: Session, *, category_in: schemas.PackageCategoryCreate
+) -> models.PackageCategory:
+    db_category = models.PackageCategory.model_validate(category_in)
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def get_package_category(db: Session, category_id: int) -> Optional[models.PackageCategory]:
+    return db.get(models.PackageCategory, category_id)
+
+# --- ServicePackage CRUD ---
+
+def create_service_package(
+    db: Session, *, package_in: schemas.ServicePackageCreate
+) -> models.ServicePackage:
+    """Tạo mới gói liệu trình và liên kết các dịch vụ."""
+    package_data = package_in.model_dump(exclude={"service_ids"})
+    db_package = models.ServicePackage.model_validate(package_data)
+
+    # Tìm và liên kết các dịch vụ
+    if package_in.service_ids:
+        services = db.exec(select(models.Service).where(models.Service.id.in_(package_in.service_ids))).all()
+        if len(services) != len(package_in.service_ids):
+            raise ValueError("Một hoặc nhiều ID dịch vụ không hợp lệ")
+        db_package.services = services
+
+    db.add(db_package)
+    db.commit()
+    db.refresh(db_package)
+    return db_package
+
+def get_service_package(db: Session, package_id: int) -> Optional[models.ServicePackage]:
+    """Lấy gói liệu trình theo ID."""
+    return db.get(models.ServicePackage, package_id)
+
+def update_service_package(
+    db: Session, *, db_package: models.ServicePackage, package_in: schemas.ServicePackageUpdate
+) -> models.ServicePackage:
+    """Cập nhật gói liệu trình, bao gồm cả danh sách dịch vụ."""
+    update_data = package_in.model_dump(exclude_unset=True, exclude={"service_ids"})
+    db_package.sqlmodel_update(update_data)
+
+    # Cập nhật danh sách dịch vụ nếu được cung cấp
+    if package_in.service_ids is not None:
+        services = db.exec(select(models.Service).where(models.Service.id.in_(package_in.service_ids))).all()
+        if len(services) != len(package_in.service_ids):
+            raise ValueError("Một hoặc nhiều ID dịch vụ không hợp lệ")
+        db_package.services = services
+
+    db.add(db_package)
+    db.commit()
+    db.refresh(db_package)
+    return db_package
+
+def set_primary_image_for_service_package(
+    db: Session, *, package: models.ServicePackage, media_id: int
+) -> models.ServicePackage:
+    """Thiết lập ảnh chính cho gói liệu trình."""
+    package.primary_image_id = media_id
+    db.add(package)
+    db.commit()
+    db.refresh(package)
+    return package

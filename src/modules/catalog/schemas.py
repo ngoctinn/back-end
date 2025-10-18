@@ -166,3 +166,59 @@ class ServiceConsumptionRead(ServiceConsumptionBase):
 
     class Config:
         from_attributes = True
+
+
+# --- Schemas cho Kế hoạch 6.4: Gói liệu trình ---
+
+# --- PackageCategory Schemas ---
+class PackageCategoryBase(BaseModel):
+    """Schema cơ bản cho danh mục gói liệu trình."""
+    name: str = Field(max_length=255)
+    description: str = ""
+
+class PackageCategoryCreate(PackageCategoryBase):
+    pass
+
+class PackageCategoryUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=255)
+    description: Optional[str] = None
+
+class PackageCategoryRead(PackageCategoryBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# --- ServicePackage Schemas ---
+class ServicePackageBase(BaseModel):
+    """Schema cơ bản cho gói liệu trình."""
+    name: str = Field(max_length=255)
+    description: str = ""
+    total_price: float
+    validity_period_days: int
+    terms_and_conditions: str = ""
+    category_id: Optional[int] = None
+
+class ServicePackageCreate(ServicePackageBase):
+    """Schema để tạo mới gói liệu trình, nhận vào danh sách ID của dịch vụ."""
+    service_ids: List[int] = []
+
+class ServicePackageUpdate(BaseModel):
+    """Schema để cập nhật gói liệu trình."""
+    name: Optional[str] = Field(default=None, max_length=255)
+    description: Optional[str] = None
+    total_price: Optional[float] = None
+    validity_period_days: Optional[int] = None
+    terms_and_conditions: Optional[str] = None
+    category_id: Optional[int] = None
+    service_ids: Optional[List[int]] = None
+
+class ServicePackageRead(ServicePackageBase):
+    """Schema để đọc thông tin gói liệu trình, bao gồm các dịch vụ con."""
+    id: int
+    primary_image_id: Optional[int] = None
+    category: Optional[PackageCategoryRead] = None
+    services: List[ServiceRead] = []
+
+    class Config:
+        from_attributes = True
