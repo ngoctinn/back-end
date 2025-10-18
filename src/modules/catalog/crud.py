@@ -186,3 +186,49 @@ def set_primary_image_for_service(
     db.commit()
     db.refresh(service)
     return service
+
+
+# --- ServiceProductConsumption CRUD ---
+
+def get_consumption_link(
+    db: Session, *, service_id: int, product_id: int
+) -> Optional[models.ServiceProductConsumption]:
+    """Lấy một liên kết vật tư tiêu hao cụ thể."""
+    return db.get(models.ServiceProductConsumption, (service_id, product_id))
+
+def add_consumption_to_service(
+    db: Session, *, service: models.Service, consumption_in: schemas.ServiceConsumptionCreate
+) -> models.Service:
+    """Thêm hoặc cập nhật một sản phẩm tiêu hao cho dịch vụ."""
+    # Kiểm tra xem liên kết đã tồn tại chưa
+    link = get_consumption_link(db, service_id=service.id, product_id=consumption_in.product_id)
+    if link:
+        # Cập nhật nếu đã tồn tại
+        link.consumed_quantity = consumption_in.consumed_quantity
+        link.unit = consumption_in.unit
+    else:
+        # Tạo mới nếu chưa tồn tại
+        link = models.ServiceProductConsumption.model_validate(consumption_in, update={"service_id": service.id})
+    
+    db.add(link)
+    db.commit()
+    db.refresh(service) # Refresh service để thấy thay đổi trong relationship
+    return service
+
+def remove_consumption_from_service(
+    db: Session, *, service: models.Service, product_id: int
+) -> models.Service:
+    """Xóa một sản phẩm tiêu hao khỏi dịch vụ."""
+    link = get_consumption_link(db, service_id=service.id, product_id=product_id)
+    if link:
+        db.delete(link)
+        db.commit()
+        db.refresh(service)
+    return service
+
+def get_consumptions_for_service(
+    db: Session, *, service_id: int
+) -> List[models.ServiceProductConsumption]:
+    """Lấy danh sách tất cả vật tư tiêu hao của một dịch vụ."""
+    statement = select(models.ServiceProductConsumption).where(models.ServiceProductConsumption.service_id == service_id)
+    return db.exec(statement).all()

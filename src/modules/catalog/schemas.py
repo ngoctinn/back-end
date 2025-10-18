@@ -141,6 +141,28 @@ class ServiceRead(ServiceBase):
     id: int
     primary_image_id: Optional[int] = None
     category: Optional[ServiceCategoryRead] = None
+    consumptions: List["ServiceConsumptionRead"] = [] # Cập nhật để hiển thị vật tư tiêu hao
+
+    class Config:
+        from_attributes = True
+
+
+# --- Schemas cho Kế hoạch 6.3: Vật tư tiêu hao ---
+
+class ServiceConsumptionBase(BaseModel):
+    """Schema cơ bản cho liên kết vật tư tiêu hao."""
+    product_id: int
+    consumed_quantity: float
+    unit: str = Field(max_length=50)
+
+class ServiceConsumptionCreate(ServiceConsumptionBase):
+    """Schema để tạo mới một liên kết vật tư tiêu hao."""
+    pass
+
+class ServiceConsumptionRead(ServiceConsumptionBase):
+    """Schema để đọc thông tin một liên kết vật tư tiêu hao."""
+    service_id: int
+    product: ProductRead # Lồng thông tin sản phẩm để hiển thị chi tiết
 
     class Config:
         from_attributes = True

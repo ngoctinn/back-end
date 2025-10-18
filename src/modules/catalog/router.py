@@ -314,3 +314,83 @@ def set_primary_image_for_service(
         raise HTTPException(status_code=400, detail="Ảnh không thuộc về dịch vụ này")
 
     return crud.set_primary_image_for_service(db=session, service=db_service, media_id=media_id)
+
+
+# === Endpoints for Service Consumptions ===
+
+@router.post(
+    "/services/{service_id}/consumptions",
+    response_model=schemas.ServiceRead,
+    summary="Thêm/Cập nhật vật tư tiêu hao cho dịch vụ"
+)
+def add_consumption_to_service(
+    *, 
+    session: Session = Depends(get_session), 
+    service_id: int, 
+    consumption_in: schemas.ServiceConsumptionCreate
+):
+    """Thêm một sản phẩm tiêu hao vào dịch vụ với số lượng cụ thể."""
+    db_service = crud.get_service(db=session, service_id=service_id)
+    if not db_service:
+        raise HTTPException(status_code=404, detail="Dịch vụ không tồn tại")
+
+    db_product = crud.get_product(db=session, product_id=consumption_in.product_id)
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Sản phẩm không tồn tại")
+
+    if db_product.product_type not in ["PROFESSIONAL", "BOTH"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Sản phẩm ID {db_product.id} không phải là sản phẩm chuyên nghiệp."
+        )
+
+    return crud.add_consumption_to_service(db=session, service=db_service, consumption_in=consumption_in)
+
+@router.delete(
+    "/services/{service_id}/consumptions/{product_id}",
+    response_model=schemas.ServiceRead,
+    summary="Xóa vật tư tiêu hao khỏi dịch vụ"
+)
+def remove_consumption_from_service(
+    *, 
+    session: Session = Depends(get_session), 
+    service_id: int, 
+    product_id: int
+):
+    """Xóa một sản phẩm tiêu hao khỏi dịch vụ."""
+    db_service = crud.get_service(db=session, service_id=service_id)
+    if not db_service:
+        raise HTTPException(status_code=404, detail="Dịch vụ không tồn tại")
+
+    return crud.remove_consumption_from_service(db=session, service=db_service, product_id=product_id)
+
+@router.get(
+    "/services/{service_id}/consumptions",
+    response_model=List[schemas.ServiceConsumptionRead],
+    summary="Lấy danh sách vật tư tiêu hao của dịch vụ"
+)
+def get_consumptions_for_service(
+    *, 
+    session: Session = Depends(get_session), 
+    service_id: int
+):
+    """Lấy danh sách tất cả các sản phẩm tiêu hao và số lượng tương ứng cho một dịch vụ."""
+    db_service = crud.get_service(db=session, service_id=service_id)
+    if not db_service:
+        raise HTTPException(status_code=404, detail="Dịch vụ không tồn tại")
+
+    # Đây là một cách để xây dựng response. 
+    # SQLModel sẽ tự động load `consumes_products` nhưng không có các trường của bảng trung gian.
+    # Chúng ta cần xây dựng response thủ công để có `consumed_quantity` và `unit`.
+    consumptions = []
+    for product in db_service.consumes_products:
+        link = crud.get_consumption_link(db=session, service_id=service_id, product_id=product.id)
+        if link:
+            consumptions.append(schemas.ServiceConsumptionRead(
+                service_id=link.service_id,
+                product_id=link.product_id,
+                consumed_quantity=link.consumed_quantity,
+                unit=link.unit,
+                product=product
+            ))
+    return consumptions

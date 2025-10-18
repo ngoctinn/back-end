@@ -24,6 +24,23 @@ class ProductCategory(SQLModel, table=True):
     products: List["Product"] = Relationship(back_populates="category")
 
 
+# --- Models cho Kế hoạch 6.3: Vật tư tiêu hao ---
+
+class ServiceProductConsumption(SQLModel, table=True):
+    """Bảng trung gian cho mối quan hệ Nhiều-Nhiều Service-Product.
+    
+    Lưu trữ số lượng sản phẩm được tiêu hao cho mỗi dịch vụ.
+    """
+    service_id: Optional[int] = Field(
+        default=None, foreign_key="service.id", primary_key=True
+    )
+    product_id: Optional[int] = Field(
+        default=None, foreign_key="product.id", primary_key=True
+    )
+    consumed_quantity: float
+    unit: str = Field(max_length=50) # ví dụ: 'ml', 'g'
+
+
 class Product(SQLModel, table=True):
     """Model Sản phẩm."""
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -47,6 +64,9 @@ class Product(SQLModel, table=True):
 
     # Mối quan hệ nhiều-một với ProductCategory
     category: Optional[ProductCategory] = Relationship(back_populates="products")
+
+    # Mối quan hệ nhiều-nhiều với Service (thông qua bảng trung gian)
+    consumed_in_services: List["Service"] = Relationship(back_populates="consumes_products", link_model=ServiceProductConsumption)
 
 
 # --- Models cho Kế hoạch 6.2: Dịch vụ ---
@@ -84,3 +104,6 @@ class Service(SQLModel, table=True):
 
     # Mối quan hệ nhiều-một với ServiceCategory
     category: Optional[ServiceCategory] = Relationship(back_populates="services")
+
+    # Mối quan hệ nhiều-nhiều với Product (thông qua bảng trung gian)
+    consumes_products: List[Product] = Relationship(back_populates="consumed_in_services", link_model=ServiceProductConsumption)
