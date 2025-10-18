@@ -25,7 +25,7 @@ router = APIRouter(prefix="/media", tags=["media"])
 
 
 @router.post(
-    "/upload/customer-avatar/{customer_id}",
+    "/customers/{customer_id}/avatar",
     response_model=MediaResponse,
     status_code=200,
     summary="Tải ảnh đại diện cho khách hàng",
@@ -39,26 +39,12 @@ async def upload_customer_avatar(
     """Tải ảnh đại diện cho khách hàng.
 
     **Yêu cầu:** JWT token (xác thực)
-
-    Args:
-        customer_id: ID của khách hàng
-        file: File ảnh (multipart/form-data)
-        current_user: Người dùng hiện tại
-        session: Database session
-
-    Returns:
-        MediaResponse: Thông tin ảnh vừa tải lên
-
-    Raises:
-        404: Khách hàng không tìm thấy
-        400: File không hợp lệ
-        500: Lỗi server
     """
     return await upload_avatar_for_customer(customer_id, file, session)
 
 
 @router.post(
-    "/upload/service-image/{service_id}",
+    "/services/{service_id}/images",
     response_model=MediaResponse,
     status_code=200,
     summary="Tải ảnh cho dịch vụ",
@@ -72,21 +58,36 @@ async def upload_service_image(
     """Tải ảnh cho dịch vụ.
 
     **Yêu cầu:** JWT token (xác thực)
-
-    Args:
-        service_id: ID của dịch vụ
-        file: File ảnh (multipart/form-data)
-        current_user: Người dùng hiện tại
-        session: Database session
-
-    Returns:
-        MediaResponse: Thông tin ảnh vừa tải lên
-
-    Raises:
-        400: File không hợp lệ
-        500: Lỗi server
     """
     return await upload_image_for_service(service_id, file, session)
+
+
+@router.get(
+    "/customers/{customer_id}",
+    response_model=MediaListResponse,
+    status_code=200,
+    summary="Lấy danh sách ảnh của khách hàng",
+)
+async def get_customer_media(
+    customer_id: int,
+    session: Session = Depends(get_session),
+) -> MediaListResponse:
+    """Lấy tất cả media của một khách hàng cụ thể."""
+    return await get_media_for_entity("customer", customer_id, session)
+
+
+@router.get(
+    "/services/{service_id}",
+    response_model=MediaListResponse,
+    status_code=200,
+    summary="Lấy danh sách ảnh của dịch vụ",
+)
+async def get_service_media(
+    service_id: int,
+    session: Session = Depends(get_session),
+) -> MediaListResponse:
+    """Lấy tất cả media của một dịch vụ cụ thể."""
+    return await get_media_for_entity("service", service_id, session)
 
 
 @router.delete(
@@ -103,46 +104,6 @@ async def delete_media(
     """Xóa ảnh khỏi Supabase Storage và CSDL.
 
     **Yêu cầu:** JWT token (xác thực)
-
-    Args:
-        media_id: ID của ảnh cần xóa
-        current_user: Người dùng hiện tại
-        session: Database session
-
-    Returns:
-        DeleteMessageResponse: Thông báo xóa thành công
-
-    Raises:
-        404: Ảnh không tìm thấy
-        500: Lỗi server
     """
     result = await delete_media_file(media_id, session)
     return DeleteMessageResponse(message=result["message"])
-
-
-@router.get(
-    "/entity/{entity_type}/{entity_id}",
-    response_model=MediaListResponse,
-    status_code=200,
-    summary="Lấy danh sách ảnh của đối tượng",
-)
-async def get_entity_media(
-    entity_type: str,
-    entity_id: int,
-    session: Session = Depends(get_session),
-) -> MediaListResponse:
-    """Lấy danh sách ảnh của một đối tượng (khách hàng, dịch vụ, nhân viên).
-
-    Args:
-        entity_type: Loại đối tượng (customer|service|staff)
-        entity_id: ID của đối tượng
-        session: Database session
-
-    Returns:
-        MediaListResponse: Danh sách ảnh sắp xếp theo thời gian tạo (mới nhất trước)
-
-    Raises:
-        400: entity_type không hợp lệ
-        404: Không tìm thấy ảnh
-    """
-    return await get_media_for_entity(entity_type, entity_id, session)
